@@ -162,6 +162,19 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .meter-k { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted); margin-top: 4px; }
 .meter-k b { font-family: var(--f-mono); color: var(--fg); font-weight: 600; }
 .fin td.sum, .fin td.sum + td { font-weight: 600; color: var(--fg); }
+/* liquidity cushion: red (tight) to green (comfortable) temperature bar */
+.liq-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-top: 10px; }
+.liq-score { font: 600 34px var(--f-mono); font-variant-numeric: tabular-nums; }
+.liq-band { font: 600 13px var(--f-body); padding: 3px 10px; border-radius: 999px; border: 1px solid currentColor; }
+.hot { color: var(--up); } .warm { color: var(--mark-buy); } .cool { color: var(--down); }
+.thermo { position: relative; height: 14px; border-radius: 7px; margin: 14px 0 22px; background: linear-gradient(90deg, var(--up) 0%, var(--mark-buy) 50%, var(--down) 80%, var(--down) 100%); }
+.thermo .tick { position: absolute; top: -4px; width: 4px; height: 22px; border-radius: 2px; background: var(--fg); border: 2px solid var(--panel); transform: translateX(-50%); box-sizing: content-box; }
+.thermo-k { position: absolute; top: 18px; font: 500 11px var(--f-mono); color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
+.liq-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 4px; }
+.liq-rows .y .v { font-size: 20px; }
+.liq-rows .note { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.liq-hist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.liq-hist span { font: 500 11px var(--f-mono); padding: 3px 8px; border-radius: 6px; border: 1px solid currentColor; }
 .top { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; }
 .lang { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
 .lang button { font: 600 13px var(--f-body); color: var(--muted); background: none; border: 0; padding: 6px 12px; cursor: pointer; }
@@ -377,6 +390,25 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
           </table>
         </div>
       </div>
+      <div v-if="fo.liq">
+        <h2>{{ t('liqH', fo.liq.date) }}</h2>
+        <p class="hint" v-if="fo.liq.na" style="margin-top:10px">{{ t('liqNa') }}</p>
+        <template v-else>
+          <div class="liq-head">
+            <span class="liq-score" :class="fo.liq.c" id="liqScore">{{ fo.liq.score }}</span><span class="liq-band" :class="fo.liq.c">{{ t(fo.liq.band) }}</span>
+            <span class="note" :class="fo.liq.cushion < 0 ? 'no' : 'ok'" style="font-size:13px">{{ fo.liq.cushionT }}</span>
+          </div>
+          <div class="thermo" role="img" :aria-label="t('liqAria', fo.liq.score, t(fo.liq.band))">
+            <span class="thermo-k" style="left:0;transform:none">0</span><span class="thermo-k" style="left:50%">50</span><span class="thermo-k" style="left:80%">80</span><span class="thermo-k" style="left:100%;transform:translateX(-100%)">100</span>
+            <span class="tick" :style="{ left: fo.liq.score + '%' }"></span>
+          </div>
+          <div class="liq-rows">
+            <div class="y" v-for="x in fo.liq.rows" :key="x.k"><span class="lbl">{{ t(x.k) }}</span><span class="v" :class="x.c">{{ x.v }}</span><span class="note">{{ x.n }}</span></div>
+          </div>
+          <div class="liq-hist" v-if="fo.liq.hist.length > 1"><span v-for="h in fo.liq.hist" :key="h.d" :class="h.c" :title="t(h.band)">{{ h.d.slice(0, 7) }} · {{ h.score }}</span></div>
+          <p class="hint" style="margin-top:10px">{{ t('liqHow') }}</p>
+        </template>
+      </div>
       <div v-if="fo.bs">
         <h2>{{ t('finDebtH', fo.bs.date) }}</h2>
         <div class="meter" aria-hidden="true"><div class="liab" :style="{ width: fo.bs.ratioP + '%' }"></div><div class="eq" :style="{ width: (100 - fo.bs.ratioP) + '%' }"></div></div>
@@ -493,7 +525,14 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       finShort: "Short-term borrowings", finLong: "Long-term borrowings", finBonds: "Corporate bonds", finIbd: "Interest-bearing debt",
       finCash: "Cash & equivalents", finOther: "Other liabilities (payables, taxes, leases…)", finTotLiab: "Total liabilities",
       finTotEq: "Total equity", finTotAssets: "Total assets",
-      finBank: "Financial company: its liabilities are mostly customer deposits and insurance reserves, not borrowings."
+      finBank: "Financial company: its liabilities are mostly customer deposits and insurance reserves, not borrowings.",
+      liqH: "Liquidity cushion, as of {0}", liqNa: "Not applicable: this company's balance sheet doesn't split current and non-current items (banks and insurers).",
+      liqHigh: "Comfortable", liqMid: "Adequate", liqLow: "Tight", liqAria: "Liquidity score {0} of 100, {1}",
+      liqPlus: "Cash & liquid investments exceed everything due within a year by {0}", liqMinus: "Cash & liquid investments fall {0} short of what's due within a year",
+      liqCash: "Cash ratio (target ≥ 0.5)", liqCashN: "Cash & liquid investments {0} ÷ current liabilities {1}",
+      liqQuick: "Quick ratio (target ≥ 1)", liqQuickN: "Current assets minus inventory {0}, ÷ current liabilities",
+      liqCur: "Current ratio (target ≥ 2)", liqCurN: "Current assets {0} ÷ current liabilities",
+      liqHow: "Score 0–100 = average of the three ratios, each as a share of its rule-of-thumb target (capped at 100%). Red under 50, amber 50–79, green 80+. Chips show the last quarters."
     },
     zh: {
       title: "加碼殖利率計算機", sub: "已填入範例數字，請換成你自己的。",
@@ -562,7 +601,14 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       finShort: "短期借款", finLong: "長期借款", finBonds: "應付公司債", finIbd: "有息負債",
       finCash: "現金及約當現金", finOther: "其他負債（應付款、稅、租賃…）", finTotLiab: "負債總額",
       finTotEq: "權益總額", finTotAssets: "資產總額",
-      finBank: "金融業：負債大多是客戶存款與保險準備金，不是借款。"
+      finBank: "金融業：負債大多是客戶存款與保險準備金，不是借款。",
+      liqH: "流動性緩衝（{0}）", liqNa: "不適用：此公司資產負債表沒有區分流動與非流動項目（銀行、保險業）。",
+      liqHigh: "充裕", liqMid: "普通", liqLow: "緊繃", liqAria: "流動性分數 {0}／100，{1}",
+      liqPlus: "現金與短期投資比一年內到期的負債多 {0}", liqMinus: "現金與短期投資比一年內到期的負債少 {0}",
+      liqCash: "現金比率（目標 ≥ 0.5）", liqCashN: "現金與短期投資 {0} ÷ 流動負債 {1}",
+      liqQuick: "速動比率（目標 ≥ 1）", liqQuickN: "流動資產扣除存貨 {0}，÷ 流動負債",
+      liqCur: "流動比率（目標 ≥ 2）", liqCurN: "流動資產 {0} ÷ 流動負債",
+      liqHow: "分數 0–100 = 三個比率各自除以經驗目標值（最高 100%）後取平均。紅色低於 50、黃色 50–79、綠色 80 以上。下方小標籤為近幾季分數。"
     }
   };
 
@@ -668,12 +714,13 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       a.ni += v.EquityAttributableToOwnersOfParent ?? v.IncomeAfterTaxes ?? v.IncomeAfterTax ?? 0;
     });
     const last4 = dates.slice(-4);
-    const b = byDate(bs), bd = Object.keys(b).sort().pop();
+    const b = byDate(bs), bds = Object.keys(b).sort(), bd = bds[bds.length - 1];
     return {
       code, quarters: dates.length, last: dates[dates.length - 1],
       years: Object.values(years).sort((a, b) => a.y - b.y),
       ttm: last4.length === 4 ? { eps: last4.reduce((a, d) => a + (q[d].EPS || 0), 0), from: last4[0], to: last4[3] } : null,
-      bs: bd ? { date: bd, ...b[bd] } : null
+      bs: bd ? { date: bd, ...b[bd] } : null,
+      bsAll: bds.map(d => ({ date: d, ...b[d] }))
     };
   }
 
@@ -947,6 +994,38 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
               .concat([it("finTotLiab", liab, true), it("finTotEq", eq), it("finTotAssets", ta), it("finCash", cash)])
           };
         } else { o.ratio = o.debt = t("na"); o.debtN = o.ratioN = ""; }
+
+        // liquidity cushion: what can be turned into cash within a year vs what falls due within a year
+        if (B && B.TotalAssets) {
+          const liq = x => {
+            const cl = x.CurrentLiabilities, ca = x.CurrentAssets;
+            if (!(cl > 0) || !(ca > 0)) return null;
+            const quick = x.CashAndCashEquivalents || 0, liquid = quick + (x.CurrentFinancialAssetsAtFairvalueThroughProfitOrLoss || 0)
+              + (x.FinancialAssetsAtFairvalueThroughOtherComprehensiveIncome || 0) + (x.FinancialAssetsAtAmortizedCost || 0);
+            const r = { cr: ca / cl, qr: (ca - (x.Inventories || 0)) / cl, cash: liquid / cl, liquid, cl, ca, inv: x.Inventories || 0 };
+            // each ratio scored against its rule-of-thumb benchmark (current 2, quick 1, cash 0.5), capped at 100
+            r.score = Math.round([r.cr / 2, r.qr / 1, r.cash / 0.5].reduce((a, v) => a + Math.min(1, Math.max(0, v)), 0) / 3 * 100);
+            r.band = r.score >= 80 ? "liqHigh" : r.score >= 50 ? "liqMid" : "liqLow";
+            r.c = r.score >= 80 ? "cool" : r.score >= 50 ? "warm" : "hot";
+            return r;
+          };
+          const L = liq(B);
+          if (!L) o.liq = { na: true, date: B.date };
+          else {
+            const band = (v, b) => v >= b ? "cool" : v >= b / 2 ? "warm" : "hot";
+            const cushion = L.liquid - L.cl;
+            o.liq = {
+              date: B.date, score: L.score, band: L.band, c: L.c, cushion,
+              cushionT: t(cushion >= 0 ? "liqPlus" : "liqMinus", amt(Math.abs(cushion))),
+              rows: [
+                { k: "liqCash", v: L.cash.toFixed(2), c: band(L.cash, 0.5), n: t("liqCashN", amt(L.liquid), amt(L.cl)) },
+                { k: "liqQuick", v: L.qr.toFixed(2), c: band(L.qr, 1), n: t("liqQuickN", amt(L.ca - L.inv)) },
+                { k: "liqCur", v: L.cr.toFixed(2), c: band(L.cr, 2), n: t("liqCurN", amt(L.ca)) }
+              ],
+              hist: D.bsAll.slice(-6).map(x => { const h = liq(x); return h && { d: x.date, score: h.score, c: h.c, band: h.band }; }).filter(Boolean)
+            };
+          }
+        }
         return o;
       });
 
