@@ -168,6 +168,10 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .sector p b { color: var(--fg); font-weight: 600; }
 .sec-name { font: 600 15px var(--f-body); }
 .sector .sec-v { font: 600 13px var(--f-mono); }
+.watch { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 4px; }
+.watch .y { padding: 10px; }
+.watch .y .v { font-size: 18px; }
+.watch .y .note { font-size: 12px; color: var(--muted); line-height: 1.4; }
 .meter .liab { background: var(--mark-buy); } .meter .eq { background: var(--accent); }
 .meter-k { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted); margin-top: 4px; }
 .meter-k b { font-family: var(--f-mono); color: var(--fg); font-weight: 600; }
@@ -432,6 +436,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
           <span class="sec-v" :class="fo.sec.c">{{ fo.sec.long }}</span>
           <p><b>{{ t('secWhy') }}</b> {{ t('secWhy_' + fo.sec.key) }}</p>
           <p><b>{{ t('secWatch') }}</b> {{ t('secWatch_' + fo.sec.key) }}</p>
+          <div class="watch" v-if="fo.sec.watch.length">
+            <div class="y" v-for="w in fo.sec.watch" :key="w.k"><span class="lbl">{{ t(w.k) }}</span><span class="v" :class="w.c">{{ w.v }}</span><span class="note">{{ w.n }}</span></div>
+          </div>
         </div>
         <p class="hint" v-else-if="fo.sec" style="margin-top:10px">{{ t('secNone', fo.sec.ind) }}</p>
         <div class="tbl">
@@ -548,6 +555,17 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       finCash: "Cash & equivalents", finOther: "Other liabilities (payables, taxes, leases…)", finTotLiab: "Total liabilities",
       finTotEq: "Total equity", finTotAssets: "Total assets",
       finBank: "Financial company: its liabilities are mostly customer deposits and insurance reserves, not borrowings.",
+      wNoData: "Not in FinMind's free data", wCar: "Capital adequacy ratio", wNpl: "Non-performing loan ratio", wLcr: "Liquidity coverage ratio",
+      wOcf: "Operating cash flow (TTM)", wOcfPos: "Positive in all {0} full years", wOcfNeg: "Negative in {1} of {0} full years",
+      wLease: "Borrowings / leases", wLeaseN: "Interest-bearing debt {0} vs lease liabilities ≈{1} (estimated from right-of-use assets; FinMind has no lease line).", wRent: "Lease principal paid, last 12 months: {0}.",
+      wSss: "Revenue growth", wSssN: "Total revenue {0} vs {1}. Same-store sales aren't published in FinMind, so this is total growth.",
+      wCov: "Interest coverage", wCovN: "Operating income {0} ÷ interest expense {1}, last 12 months. Under 2× is a warning, 5×+ is comfortable.",
+      wInv: "Inventory turnover", wInvN: "Cost of goods sold ÷ average inventory, last 12 months; about {0} days of stock.",
+      wCcc: "Cash conversion cycle", wCccN: "Inventory {0} + receivables {1} − payables {2} days.", wDays: "{0} days",
+      wGm: "Gross margin (TTM)", wGmN: "Gross profit ÷ revenue",
+      wRunway: "Cash runway", wSelf: "Self-funding", wSelfN: "Free cash flow +{0} in the last 12 months (operating cash flow − capex).",
+      wYears: "{0} yrs", wBurnN: "Burning {0} a year (operating cash flow − capex) against cash {1}.",
+      wRd: "R&D burn rate", wRdN: "R&D isn't broken out in FinMind's income statement.",
       secH: "Sector standard", secTyp: "typical liability ratio {0}", secBand: "typical {0}", secWhy: "Why it's normal:", secWatch: "What to watch instead:",
       secNone: "No sector standard set for {0}.",
       secBelow: "✓ {0} is below the typical {1} (lighter than peers)", secIn: "✓ {0} is within the typical {1}",
@@ -643,6 +661,17 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       finCash: "現金及約當現金", finOther: "其他負債（應付款、稅、租賃…）", finTotLiab: "負債總額",
       finTotEq: "權益總額", finTotAssets: "資產總額",
       finBank: "金融業：負債大多是客戶存款與保險準備金，不是借款。",
+      wNoData: "FinMind 免費資料未提供", wCar: "資本適足率", wNpl: "逾放比", wLcr: "流動性覆蓋比率",
+      wOcf: "營業現金流（近 4 季）", wOcfPos: "近 {0} 個完整年度皆為正", wOcfNeg: "近 {0} 個完整年度中有 {1} 年為負",
+      wLease: "借款／租賃", wLeaseN: "有息負債 {0} 對比租賃負債約 {1}（以使用權資產估計；FinMind 沒有租賃負債欄位）。", wRent: "近 12 個月償還租賃本金 {0}。",
+      wSss: "營收成長", wSssN: "{0} 年總營收對比 {1} 年。FinMind 沒有同店銷售資料，此為總營收成長。",
+      wCov: "利息保障倍數", wCovN: "近 4 季營業利益 {0} ÷ 利息費用 {1}。低於 2 倍需留意，5 倍以上為充裕。",
+      wInv: "存貨周轉率", wInvN: "近 4 季銷貨成本 ÷ 平均存貨；約 {0} 天的庫存。",
+      wCcc: "現金循環周期", wCccN: "存貨 {0} 天 + 應收 {1} 天 − 應付 {2} 天。", wDays: "{0} 天",
+      wGm: "毛利率（近 4 季）", wGmN: "毛利 ÷ 營收",
+      wRunway: "現金可支撐期間", wSelf: "可自給自足", wSelfN: "近 12 個月自由現金流 +{0}（營業現金流 − 資本支出）。",
+      wYears: "{0} 年", wBurnN: "每年燒掉 {0}（營業現金流 − 資本支出），現金 {1}。",
+      wRd: "研發燒錢速度", wRdN: "FinMind 損益表沒有拆出研發費用。",
       secH: "產業標準", secTyp: "常見負債比 {0}", secBand: "同業 {0}", secWhy: "為何正常：", secWatch: "應改看：",
       secNone: "{0} 尚未設定產業標準。",
       secBelow: "✓ {0} 低於同業常見的 {1}（負債較輕）", secIn: "✓ {0} 在同業常見的 {1} 之內",
@@ -783,9 +812,10 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 
   // financial statements: FinMind gives single-quarter income values; a year counts once all 4 quarters are in
   async function finLookup(code) {
-    const [is, bs] = await Promise.all([
+    const [is, bs, cf] = await Promise.all([
       fm("TaiwanStockFinancialStatements", code, (new Date().getFullYear() - 6) + "-01-01"),
-      fm("TaiwanStockBalanceSheet", code, iso(new Date(Date.now() - 550 * 864e5)))
+      fm("TaiwanStockBalanceSheet", code, iso(new Date(Date.now() - 550 * 864e5))),
+      fm("TaiwanStockCashFlowsStatement", code, (new Date().getFullYear() - 6) + "-01-01").catch(() => [])  // year-to-date cumulative
     ]);
     const byDate = rows => { const o = {}; rows.forEach(x => { (o[x.date] = o[x.date] || {})[x.type] = x.value; }); return o; };
     const q = byDate(is), dates = Object.keys(q).sort();
@@ -802,7 +832,8 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       years: Object.values(years).sort((a, b) => a.y - b.y),
       ttm: last4.length === 4 ? { eps: last4.reduce((a, d) => a + (q[d].EPS || 0), 0), from: last4[0], to: last4[3] } : null,
       bs: bd ? { date: bd, ...b[bd] } : null,
-      bsAll: bds.map(d => ({ date: d, ...b[d] }))
+      bsAll: bds.map(d => ({ date: d, ...b[d] })),
+      q, dates, cf: byDate(cf)
     };
   }
 
@@ -1064,6 +1095,72 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         catch (err) { next = { code: r.code, kind: "fail", msg: err.message }; }
         if (R.value && R.value.code === r.code) fin.value = next;
       }, { immediate: true });
+      // the sector's "what to watch" metrics, from the statements FinMind has (TTM = last 4 quarters)
+      function watchOf(key, D, B, ibd) {
+        const amt = v => compact(v), out = [];
+        const q4 = D.dates.slice(-4), qsum = k => q4.length === 4 && q4.every(d => D.q[d][k] != null) ? q4.reduce((a, d) => a + D.q[d][k], 0) : null;
+        // cash flow is cumulative within each year: TTM = this YTD + last full year - last year's same YTD
+        const cfd = Object.keys(D.cf).sort(), cl = cfd[cfd.length - 1];
+        const cfTtm = k => {
+          if (!cl) return null;
+          const v = D.cf[cl][k]; if (v == null) return null;
+          if (cl.slice(5) === "12-31") return v;
+          const y = +cl.slice(0, 4) - 1, full = D.cf[y + "-12-31"], same = D.cf[y + cl.slice(4)];
+          return full && same && full[k] != null && same[k] != null ? v + full[k] - same[k] : null;
+        };
+        const cfYears = cfd.filter(d => d.endsWith("12-31")).slice(-5).map(d => ({ y: d.slice(0, 4), v: D.cf[d].CashFlowsFromOperatingActivities })).filter(x => x.v != null);
+        const ocf = cfTtm("CashFlowsFromOperatingActivities"), capex = cfTtm("PropertyAndPlantAndEquipment");
+        const prevB = D.bsAll.find(x => x.date.slice(5) === B.date.slice(5) && +x.date.slice(0, 4) === +B.date.slice(0, 4) - 1);
+        const avg = k => prevB && prevB[k] != null && B[k] != null ? (B[k] + prevB[k]) / 2 : B[k];
+        const unavailable = k => out.push({ k, v: t("na"), n: t("wNoData"), c: "flat" });
+        if (key === "fin") { ["wCar", "wNpl", "wLcr"].forEach(unavailable); return out; }
+        if (key === "retail") {
+          if (cfYears.length) {
+            const neg = cfYears.filter(x => x.v < 0).length;
+            out.push({ k: "wOcf", v: amt(ocf ?? cfYears[cfYears.length - 1].v), c: neg ? "no" : "ok",
+              n: t(neg ? "wOcfNeg" : "wOcfPos", cfYears.length, neg) + " · " + cfYears.map(x => x.y + " " + amt(x.v)).join(" · ") });
+          }
+          const rou = B.RightOfUseAsset || 0, rent = cfTtm("RentalPrincipalRepayments");
+          out.push({ k: "wLease", v: amt(ibd) + " / ≈" + amt(rou), c: rou > ibd ? "flat" : "warm",
+            n: t("wLeaseN", amt(ibd), amt(rou)) + (rent != null ? " " + t("wRent", amt(Math.abs(rent))) : "") });
+          const ys = D.years.filter(a => a.n === 4).slice(-2);
+          if (ys.length === 2 && ys[0].rev) { const g = ys[1].rev / ys[0].rev - 1; out.push({ k: "wSss", v: signed(g * 100, x => x.toFixed(1)) + "%", c: dir(g), n: t("wSssN", ys[1].y, ys[0].y) }); }
+          return out;
+        }
+        if (key === "util") {
+          const oi = qsum("OperatingIncome"), ie = cfTtm("InterestExpense");
+          if (oi != null && ie > 0) { const cov = oi / ie; out.push({ k: "wCov", v: cov.toFixed(1) + "×", c: cov >= 5 ? "ok" : cov >= 2 ? "warm" : "no", n: t("wCovN", amt(oi), amt(ie)) }); }
+          else unavailable("wCov");
+          return out;
+        }
+        if (key === "mfg") {
+          const cogs = qsum("CostOfGoodsSold"), rev = qsum("Revenue"), inv = avg("Inventories");
+          const ar = (avg("AccountsReceivableNet") || 0) + (avg("AccountsReceivableDuefromRelatedPartiesNet") || 0);
+          const ap = (avg("AccountsPayable") || 0) + (avg("AccountsPayableToRelatedParties") || 0);
+          if (cogs > 0 && inv > 0) {
+            const dio = inv / cogs * 365, dso = rev > 0 ? ar / rev * 365 : 0, dpo = ap / cogs * 365, ccc = dio + dso - dpo;
+            out.push({ k: "wInv", v: (cogs / inv).toFixed(1) + "×", c: "flat", n: t("wInvN", Math.round(dio)) });
+            out.push({ k: "wCcc", v: t("wDays", Math.round(ccc)), c: ccc <= 60 ? "ok" : ccc <= 120 ? "warm" : "no", n: t("wCccN", Math.round(dio), Math.round(dso), Math.round(dpo)) });
+          } else unavailable("wInv");
+          return out;
+        }
+        if (key === "tech") {
+          const gp = qsum("GrossProfit"), rev = qsum("Revenue");
+          if (gp != null && rev > 0) {
+            const yr = D.years.filter(a => a.n === 4).slice(-3).map(a => { const qs = D.dates.filter(d => +d.slice(0, 4) === a.y); const g = qs.reduce((s, d) => s + (D.q[d].GrossProfit || 0), 0); return a.y + " " + pct(g / a.rev); });
+            out.push({ k: "wGm", v: pct(gp / rev), c: "flat", n: t("wGmN") + " · " + yr.join(" · ") });
+          }
+          if (ocf != null) {
+            const fcf = ocf + (capex || 0), cash = B.CashAndCashEquivalents || 0;
+            out.push(fcf >= 0 ? { k: "wRunway", v: t("wSelf"), c: "ok", n: t("wSelfN", amt(fcf)) }
+              : { k: "wRunway", v: t("wYears", (cash / -fcf).toFixed(1)), c: cash / -fcf >= 2 ? "warm" : "no", n: t("wBurnN", amt(-fcf), amt(cash)) });
+          }
+          out.push({ k: "wRd", v: t("na"), n: t("wRdN"), c: "flat" });
+          return out;
+        }
+        return out;
+      }
+
       const fo = computed(() => {
         const f = fin.value, r = R.value;
         if (!f || !r || f.code !== r.code) return null;
@@ -1096,7 +1193,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
           if (S) {
             const k = v < S.lo ? "secBelow" : v <= S.hi ? "secIn" : v <= S.hi + 10 ? "secAbove" : "secWell";
             o.sec = { key, ...S, c: { secBelow: "ok", secIn: "ok", secAbove: "warm", secWell: "no" }[k],
-              short: t(k + "S", S.typ), long: t(k, pct(liab / ta), S.typ) };
+              short: t(k + "S", S.typ), long: t(k, pct(liab / ta), S.typ), watch: watchOf(key, D, B, ibd) };
           } else o.sec = { ind: (r.inds || []).filter(x => x !== "電子工業")[0] || r.industry || "?" };
           if (bank) { o.debt = t("finBankV"); o.debtN = t("finBank"); }
           else {
