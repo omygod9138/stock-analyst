@@ -159,7 +159,15 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .fbar.partial i { opacity: .4; }
 .fbar span { font: 500 11px var(--f-mono); color: var(--muted); margin-bottom: 3px; white-space: nowrap; }
 .fbars-x { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; font: 500 11px var(--f-mono); color: var(--muted); text-align: center; margin-top: 4px; }
-.meter { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--line); margin-top: 12px; }
+.meter { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--line); }
+.meter-wrap { position: relative; margin-top: 30px; }
+.meter-wrap .band { position: absolute; top: -4px; bottom: -4px; border: 2px solid var(--fg); border-radius: 5px; box-sizing: border-box; }
+.meter-wrap .band span { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 3px; font: 600 11px var(--f-mono); color: var(--fg); white-space: nowrap; }
+.sector { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 12px 14px; margin-top: 14px; display: grid; gap: 6px; font-size: 13px; }
+.sector p { margin: 0; color: var(--muted); line-height: 1.5; }
+.sector p b { color: var(--fg); font-weight: 600; }
+.sec-name { font: 600 15px var(--f-body); }
+.sector .sec-v { font: 600 13px var(--f-mono); }
 .meter .liab { background: var(--mark-buy); } .meter .eq { background: var(--accent); }
 .meter-k { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted); margin-top: 4px; }
 .meter-k b { font-family: var(--f-mono); color: var(--fg); font-weight: 600; }
@@ -374,7 +382,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         <div class="y main"><span class="lbl">{{ t('finNi', fo.lastY) }}</span><span class="v" id="fNi" :title="fo.lastNiT">{{ fo.lastNi }}</span><span class="d" :class="fo.niC">{{ fo.niD }}</span><span class="note">{{ t('finNiN') }}</span></div>
         <div class="y"><span class="lbl">{{ t('finEps', fo.lastY) }}</span><span class="v" id="fEps">{{ fo.lastEps }}</span><span class="note">{{ fo.ttm }}</span></div>
         <div class="y"><span class="lbl">{{ t('finDebt') }}</span><span class="v" id="fDebt" :title="fo.debtT">{{ fo.debt }}</span><span class="d" :class="fo.cashC">{{ fo.cashD }}</span><span class="note">{{ fo.debtN }}</span></div>
-        <div class="y"><span class="lbl">{{ t('finRatio') }}</span><span class="v" id="fRatio">{{ fo.ratio }}</span><span class="note">{{ fo.ratioN }}</span></div>
+        <div class="y"><span class="lbl">{{ t('finRatio') }}</span><span class="v" id="fRatio">{{ fo.ratio }}</span><span class="d" v-if="fo.sec && fo.sec.key" :class="fo.sec.c">{{ fo.sec.short }}</span><span class="note">{{ fo.ratioN }}</span></div>
       </div>
       <div>
         <h2>{{ t('finIncomeH') }}</h2>
@@ -413,9 +421,19 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       </div>
       <div v-if="fo.bs">
         <h2>{{ t('finDebtH', fo.bs.date) }}</h2>
-        <div class="meter" aria-hidden="true"><div class="liab" :style="{ width: fo.bs.ratioP + '%' }"></div><div class="eq" :style="{ width: (100 - fo.bs.ratioP) + '%' }"></div></div>
+        <div class="meter-wrap" aria-hidden="true">
+          <div class="meter"><div class="liab" :style="{ width: fo.bs.ratioP + '%' }"></div><div class="eq" :style="{ width: (100 - fo.bs.ratioP) + '%' }"></div></div>
+          <div class="band" v-if="fo.sec && fo.sec.key" :style="{ left: fo.sec.lo + '%', width: (fo.sec.hi - fo.sec.lo) + '%' }"><span>{{ t('secBand', fo.sec.typ) }}</span></div>
+        </div>
         <div class="meter-k"><span>{{ t('finLiab') }} <b>{{ fo.ratio }}</b></span><span>{{ t('finEq') }} <b>{{ fo.bs.eqP }}</b></span></div>
-        <p class="hint" v-if="fo.bs.bank" style="margin-top:10px">{{ t('finBank') }}</p>
+        <div class="sector" v-if="fo.sec && fo.sec.key">
+          <span class="lbl">{{ t('secH') }}</span>
+          <span class="sec-name">{{ t('sec_' + fo.sec.key) }} · {{ t('secTyp', fo.sec.typ) }}</span>
+          <span class="sec-v" :class="fo.sec.c">{{ fo.sec.long }}</span>
+          <p><b>{{ t('secWhy') }}</b> {{ t('secWhy_' + fo.sec.key) }}</p>
+          <p><b>{{ t('secWatch') }}</b> {{ t('secWatch_' + fo.sec.key) }}</p>
+        </div>
+        <p class="hint" v-else-if="fo.sec" style="margin-top:10px">{{ t('secNone', fo.sec.ind) }}</p>
         <div class="tbl">
           <table class="fin">
             <tbody>
@@ -530,6 +548,23 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       finCash: "Cash & equivalents", finOther: "Other liabilities (payables, taxes, leases…)", finTotLiab: "Total liabilities",
       finTotEq: "Total equity", finTotAssets: "Total assets",
       finBank: "Financial company: its liabilities are mostly customer deposits and insurance reserves, not borrowings.",
+      secH: "Sector standard", secTyp: "typical liability ratio {0}", secBand: "typical {0}", secWhy: "Why it's normal:", secWatch: "What to watch instead:",
+      secNone: "No sector standard set for {0}.",
+      secBelow: "✓ {0} is below the typical {1} (lighter than peers)", secIn: "✓ {0} is within the typical {1}",
+      secAbove: "△ {0} is above the typical {1}", secWell: "✗ {0} is well above the typical {1}",
+      secBelowS: "✓ below sector norm {0}", secInS: "✓ within sector norm {0}", secAboveS: "△ above sector norm {0}", secWellS: "✗ well above sector norm {0}",
+      sec_fin: "Financial & Banking (banks, financial holdings)", sec_retail: "Retail, Restaurants & Hospitality",
+      sec_util: "Utilities, Infrastructure & Telecom", sec_mfg: "Manufacturing, Industrial & Food Processing", sec_tech: "Technology, Software & Biotech",
+      secWhy_fin: "Financial institutions survive by taking in deposits (liabilities they owe to customers) and turning them into loans and investments. A 90% liability ratio is standard and required for the business model.",
+      secWatch_fin: "Capital adequacy ratio (CAR), non-performing loan (NPL) ratio and liquidity coverage, rather than debt-to-equity.",
+      secWhy_retail: "Under IFRS 16, long-term leases for store locations are capitalized as large liabilities. With fast cash turnover from customers and supplier trade credit (accounts payable), high liability ratios are structural.",
+      secWatch_retail: "Operating cash flow consistency, interest-bearing debt vs. lease liabilities, and same-store sales growth.",
+      secWhy_util: "Huge upfront capital spending on power grids, cell towers or pipelines, funded by stable long-term bonds and borrowings; cash flows are steady and predictable for decades.",
+      secWatch_util: "Interest coverage ratio (operating income ÷ interest expense), to make sure steady earnings easily cover debt service.",
+      secWhy_mfg: "Heavy investment in plants, machinery and raw-material inventory (such as bulk agricultural commodities), with moderate leverage to optimize production scale.",
+      secWatch_mfg: "Inventory turnover and the working-capital cycle, so raw materials convert into cash without trapping capital.",
+      secWhy_tech: "Relies on intellectual property, R&D and talent rather than heavy infrastructure. Earnings can be volatile or hyper-growth, so these companies prefer low leverage and clean balance sheets.",
+      secWatch_tech: "R&D burn rate, cash runway and gross margin, rather than the size of operating liabilities.",
       liqH: "Liquidity cushion, as of {0}", liqNa: "Not applicable: this company's balance sheet doesn't split current and non-current items (banks and insurers).",
       liqHigh: "Comfortable", liqMid: "Adequate", liqLow: "Tight", liqAria: "Liquidity score {0} of 100, {1}",
       liqPlus: "Cash & liquid investments exceed everything due within a year by {0}", liqMinus: "Cash & liquid investments fall {0} short of what's due within a year",
@@ -608,6 +643,23 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       finCash: "現金及約當現金", finOther: "其他負債（應付款、稅、租賃…）", finTotLiab: "負債總額",
       finTotEq: "權益總額", finTotAssets: "資產總額",
       finBank: "金融業：負債大多是客戶存款與保險準備金，不是借款。",
+      secH: "產業標準", secTyp: "常見負債比 {0}", secBand: "同業 {0}", secWhy: "為何正常：", secWatch: "應改看：",
+      secNone: "{0} 尚未設定產業標準。",
+      secBelow: "✓ {0} 低於同業常見的 {1}（負債較輕）", secIn: "✓ {0} 在同業常見的 {1} 之內",
+      secAbove: "△ {0} 高於同業常見的 {1}", secWell: "✗ {0} 遠高於同業常見的 {1}",
+      secBelowS: "✓ 低於同業 {0}", secInS: "✓ 符合同業 {0}", secAboveS: "△ 高於同業 {0}", secWellS: "✗ 遠高於同業 {0}",
+      sec_fin: "金融與銀行業（銀行、金控）", sec_retail: "零售、餐飲與觀光服務業",
+      sec_util: "公用事業、基礎建設與電信", sec_mfg: "製造、工業與食品加工", sec_tech: "科技、軟體與生技",
+      secWhy_fin: "金融機構靠吸收存款（對客戶的負債）再轉為放款與投資來運作，負債比 90% 完全正常，也是其商業模式所必需。",
+      secWatch_fin: "資本適足率（CAR）、逾放比（NPL）與流動性覆蓋率，而非傳統的負債權益比。",
+      secWhy_retail: "依 IFRS 16，門市的長期租約會認列為大額租賃負債；加上顧客付現周轉快、供應商給予付款期限（應付帳款），高負債比是結構性的。",
+      secWatch_retail: "營業現金流是否穩定、有息負債與租賃負債的比較、同店銷售成長。",
+      secWhy_util: "興建電網、基地台或管線需要龐大的前期資本支出，依賴穩定的長期公司債與借款；現金流如同帳單般穩定，可預期數十年。",
+      secWatch_util: "利息保障倍數（營業利益 ÷ 利息費用），確認穩定獲利足以支應債務利息。",
+      secWhy_mfg: "需大量投資廠房、機器與原物料存貨（例如大宗農產品），以適度槓桿擴大生產規模。",
+      secWatch_mfg: "存貨周轉速度與營運資金周期，確認原料能順利轉為現金、不會卡住資金。",
+      secWhy_tech: "主要依賴智慧財產、研發與人才，而非重資產；獲利可能波動大或高速成長，因此偏好低槓桿、乾淨的資產負債表。",
+      secWatch_tech: "研發燒錢速度、現金可支撐期間與毛利率，而非營運負債的規模。",
       liqH: "流動性緩衝（{0}）", liqNa: "不適用：此公司資產負債表沒有區分流動與非流動項目（銀行、保險業）。",
       liqHigh: "充裕", liqMid: "普通", liqLow: "緊繃", liqAria: "流動性分數 {0}／100，{1}",
       liqPlus: "現金與短期投資比一年內到期的負債多 {0}", liqMinus: "現金與短期投資比一年內到期的負債少 {0}",
@@ -706,9 +758,27 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
     days.forEach(x => { if (x.max > hi.max) hi = x; if (x.min > 0 && x.min < lo.min) lo = x; });
     return {
       code, name: info[0] && info[0].stock_name, type: info[0] && info[0].type, industry: info[0] && info[0].industry_category,
+      inds: [...new Set(info.map(x => x.industry_category).filter(Boolean))],
       close: last.close, date: last.date, prev: days.length > 1 ? days[days.length - 2].close : last.close, since: days[0].date,
       div: ttm.reduce((a, b) => a + b.cash, 0), n: ttm.length, pays, hi, lo, per: per[per.length - 1], avgClose: avgCloseByYear(days), pars
     };
+  }
+
+  // sector liability-ratio standards (user-defined, 2026-10-19); matched on FinMind industry names, most specific first
+  const SECTORS = {
+    fin: { lo: 85, hi: 95, typ: "85–95%+" }, retail: { lo: 60, hi: 75, typ: "60–75%" }, util: { lo: 50, hi: 70, typ: "50–70%" },
+    mfg: { lo: 40, hi: 60, typ: "40–60%" }, tech: { lo: 20, hi: 40, typ: "20–40%" }
+  };
+  const TELECOM = ["2412", "3045", "4904", "3682"];   // telecom operators; other 通信網路業 names are equipment makers
+  function sectorOf(code, inds) {
+    const has = re => inds.some(x => re.test(x));
+    if (has(/金融/)) return "fin";
+    if (has(/貿易百貨|觀光|餐旅|居家生活|運動休閒|電子商務/)) return "retail";
+    if (has(/油電燃氣/) || TELECOM.includes(code)) return "util";
+    if (has(/食品|水泥|塑膠|紡織|電機機械|電器電纜|化學工業|玻璃陶瓷|造紙|鋼鐵|橡膠|汽車|農業科技/)) return "mfg";
+    if (has(/電子通路|建材營造|航運|文化創意|綠能環保/)) return null;   // no standard given for these
+    if (has(/半導體|電腦及週邊|光電|電子零組件|資訊服務|其他電子|通信網路|數位雲端|生技|電子工業/)) return "tech";
+    return null;
   }
 
   // financial statements: FinMind gives single-quarter income values; a year counts once all 4 quarters are in
@@ -1022,6 +1092,12 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
           const bank = /金融/.test(r.industry || "");
           o.ratio = pct(liab / ta);
           o.ratioN = t("finRatioN", amt(liab), amt(ta), eq > 0 ? (liab / eq).toFixed(2) : "–");
+          const key = sectorOf(r.code, r.inds || [r.industry || ""]), S = SECTORS[key], v = liab / ta * 100;
+          if (S) {
+            const k = v < S.lo ? "secBelow" : v <= S.hi ? "secIn" : v <= S.hi + 10 ? "secAbove" : "secWell";
+            o.sec = { key, ...S, c: { secBelow: "ok", secIn: "ok", secAbove: "warm", secWell: "no" }[k],
+              short: t(k + "S", S.typ), long: t(k, pct(liab / ta), S.typ) };
+          } else o.sec = { ind: (r.inds || []).filter(x => x !== "電子工業")[0] || r.industry || "?" };
           if (bank) { o.debt = t("finBankV"); o.debtN = t("finBank"); }
           else {
             o.debt = ibd ? amt(ibd) : t("finNoDebt"); o.debtT = money(ibd);
