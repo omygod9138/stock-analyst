@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Buy-In Yield Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<style>
+/* Layout: inputs ticket on the left, results ledger on the right; stacks on phone */
+:root {
+  --bg: #f3f5f2; --panel: #ffffff; --fg: #1b2420; --muted: #5d6b64; --line: #d9e0db;
+  --accent: #1f6b52; --up: #b4462f; --down: #1f6b52; --mark-old: #8a9790; --mark-buy: #c08a1e;
+  --f-display: "Fraunces", Georgia, serif;
+  --f-body: "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121715; --panel: #1a211e; --fg: #e4ebe6; --muted: #93a29a; --line: #2c3631;
+  --accent: #5cc49b; --up: #ef8a72; --down: #5cc49b; --mark-old: #7d8a83; --mark-buy: #e2b14e; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121715; --panel: #1a211e; --fg: #e4ebe6; --muted: #93a29a; --line: #2c3631;
+  --accent: #5cc49b; --up: #ef8a72; --down: #5cc49b; --mark-old: #7d8a83; --mark-buy: #e2b14e; color-scheme: dark }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 40px; }
+.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 20px; }
+h1 { font-family: var(--f-display); font-weight: 600; font-size: 28px; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; }
+.grid { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; }
+fieldset + fieldset { margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--line); }
+legend { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0; margin-bottom: 10px; }
+label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+input { font: 500 16px var(--f-mono); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; box-sizing: border-box; font-variant-numeric: tabular-nums; }
+input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.headline { display: flex; flex-wrap: wrap; gap: 10px 28px; align-items: baseline; }
+.big { font: 600 34px var(--f-mono); font-variant-numeric: tabular-nums; }
+.chip { font: 600 13px var(--f-mono); padding: 3px 10px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--muted); }
+.lbl { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+/* price scale */
+.scale { position: relative; height: 92px; margin: 22px 8px 6px; }
+.track { position: absolute; left: 0; right: 0; top: 46px; height: 2px; background: var(--line); }
+.arrow { position: absolute; top: 45px; height: 4px; border-radius: 2px; background: currentColor; opacity: .55; }
+.mk { position: absolute; top: 0; transform: translateX(-50%); display: grid; justify-items: center; gap: 2px; font: 500 12px var(--f-mono); white-space: nowrap; }
+.mk .dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; border: 2px solid var(--panel); }
+.mk.below { top: 40px; }
+.mk.below .dot { order: -1; margin: 0 0 4px; }
+.mk-old .dot { background: var(--mark-old); } .mk-old { color: var(--mark-old); }
+.mk-buy .dot { background: var(--mark-buy); } .mk-buy { color: var(--mark-buy); }
+.mk-new .dot { background: var(--accent); width: 14px; height: 14px; } .mk-new { color: var(--accent); font-weight: 600; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 9px 8px; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; }
+th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td { font-family: var(--f-mono); font-size: 14px; }
+td:first-child { font-family: var(--f-body); color: var(--muted); }
+.tbl { overflow-x: auto; margin-top: 14px; }
+.yields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+@media (max-width: 480px) { .yields { grid-template-columns: minmax(0, 1fr); } }
+.y { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 2px; }
+.y.main { border-color: var(--accent); }
+.y .v { font: 600 22px var(--f-mono); font-variant-numeric: tabular-nums; }
+.y .d { font: 500 12px var(--f-mono); }
+.err { color: var(--up); font-size: 13px; margin: 8px 0 0; }
+.rec { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+@media (max-width: 480px) { .rec { grid-template-columns: minmax(0, 1fr); } }
+.rec .y .v { font-size: 20px; }
+.rec .note { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.target { margin-top: 6px; font-size: 13px; color: var(--muted); }
+.target b { font-family: var(--f-mono); color: var(--fg); font-weight: 600; }
+.ok { color: var(--down); } .no { color: var(--up); }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { font: 600 14px var(--f-body); color: var(--muted); background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 14px; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
+.tab:hover { color: var(--fg); }
+.tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+.linkbtn { font: 500 13px var(--f-body); color: var(--accent); background: none; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; justify-self: start; }
+.linkbtn:hover { border-color: var(--accent); }
+.big-rec { font: 600 34px var(--f-mono); font-variant-numeric: tabular-nums; color: var(--accent); }
+h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 22px 0 0; font-weight: 600; }
+.tick { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: end; }
+.tick label { flex: 0 1 180px; }
+.tick .btn { font: 600 14px var(--f-body); color: var(--panel); background: var(--accent); border: 0; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+.tick .btn:disabled { opacity: .6; cursor: progress; }
+.tick .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tick-out { flex: 1 1 260px; font-size: 13px; color: var(--muted); margin: 0; min-width: 0; }
+.tick-out b { color: var(--fg); font-family: var(--f-mono); font-weight: 600; }
+.tick-out.no { color: var(--up); }
+.det-empty { color: var(--muted); }
+.det { display: grid; gap: 20px; }
+.det-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; }
+.det-name { font: 600 20px var(--f-body); }
+.split { display: inline-flex; align-items: center; gap: 4px; font: 600 12px var(--f-body); color: var(--mark-buy); background: none; border: 1px solid currentColor; border-radius: 999px; padding: 2px 8px; cursor: pointer; align-self: center; }
+.split svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.split:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.split-n { margin: -12px 0 0; font-size: 13px; color: var(--muted); }
+.wl-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.wl-count { margin: 0; color: var(--muted); font-size: 13px; }
+.wl-act { display: flex; gap: 8px; flex-wrap: wrap; }
+.wl-act label.linkbtn { display: inline-block; color: var(--accent); font-size: 13px; }
+.wl-msg { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.wl-msg.no { color: var(--up); }
+.wl td { white-space: nowrap; }
+.wl tbody tr { cursor: pointer; }
+.wl tbody tr:hover td { background: var(--bg); }
+.wl td:first-child { font-family: var(--f-mono); color: var(--accent); font-weight: 600; }
+.wl td:nth-child(2) { font-family: var(--f-body); text-align: left; }
+.wl th:nth-child(2) { text-align: left; }
+.wl .open { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.wl .rm { font: 600 14px var(--f-body); color: var(--muted); background: none; border: 1px solid transparent; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; }
+.wl .rm:hover { color: var(--up); border-color: var(--line); }
+.budget { display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 10px; }
+@media (max-width: 640px) { .budget { grid-template-columns: minmax(0, 1fr); } }
+.kpis.bud-out { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.bud-out .y .v { font-size: 20px; }
+.det-sub { color: var(--muted); font-size: 13px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.kpis .y { align-content: start; }
+.kpis .y .v { font-size: 24px; }
+.kpis .note { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.range { position: relative; height: 84px; margin: 8px 8px 0; }
+.range .track { top: 30px; height: 6px; border-radius: 3px; background: var(--line); }
+.range .now { position: absolute; top: 22px; width: 4px; height: 22px; border-radius: 2px; background: var(--accent); transform: translateX(-50%); }
+.range .now span { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); font: 600 12px var(--f-mono); color: var(--accent); white-space: nowrap; }
+.range .end { position: absolute; top: 44px; font: 500 12px var(--f-mono); color: var(--muted); white-space: nowrap; }
+.range .end b { color: var(--fg); font-weight: 600; }
+.step { display: inline-flex; align-items: center; gap: 6px; justify-self: start; margin: 2px 0 4px; }
+.step button { font: 600 15px var(--f-mono); width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; line-height: 1; }
+.step button:hover { border-color: var(--accent); color: var(--accent); }
+.step button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.step button:disabled { opacity: .4; cursor: default; }
+.step span { font: 600 14px var(--f-mono); min-width: 44px; text-align: center; }
+.hist-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 10px; }
+.hist-head .lbl { flex-basis: 100%; }
+.hist-v { font: 600 24px var(--f-mono); font-variant-numeric: tabular-nums; }
+.hist-head .note { font-size: 13px; color: var(--muted); }
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 140px; padding-top: 20px; margin-top: 12px; border-bottom: 1px solid var(--line); position: relative; }
+.bar { flex: 1 1 0; min-width: 0; background: var(--accent); border-radius: 4px 4px 0 0; position: relative; }
+.bar.partial { opacity: .4; }
+.bar .yl { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 3px; font: 500 10.5px var(--f-mono); color: var(--muted); white-space: nowrap; pointer-events: none; }
+.bars.dense .bar .yl { display: none; }
+.bar:hover, .bar:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+.bars-x { display: flex; justify-content: space-between; font: 500 11px var(--f-mono); color: var(--muted); margin-top: 4px; }
+.bar-tip { min-height: 20px; font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+.bar-tip b { font-family: var(--f-mono); color: var(--fg); }
+.top { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; }
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.lang button { font: 600 13px var(--f-body); color: var(--muted); background: none; border: 0; padding: 6px 12px; cursor: pointer; }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button[aria-pressed="true"] { background: var(--accent); color: var(--panel); }
+.lang button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+[v-cloak] { display: none; }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app" v-cloak>
+  <header class="top">
+    <div>
+      <h1>{{ t('title') }}</h1>
+      <p class="sub">{{ t('sub') }}</p>
+    </div>
+    <div class="lang" role="group" aria-label="Language / 語言">
+      <button type="button" data-lang="zh" lang="zh-Hant" :aria-pressed="lang === 'zh'" @click="lang = 'zh'">中文</button>
+      <button type="button" data-lang="en" lang="en" :aria-pressed="lang === 'en'" @click="lang = 'en'">EN</button>
+    </div>
+  </header>
+
+  <form class="panel tick" id="fq" autocomplete="off" @submit.prevent="go">
+    <label for="q"><span>{{ t('code') }}</span><input id="q" type="text" inputmode="text" :placeholder="t('codePh')" maxlength="10" v-model="q"></label>
+    <button class="btn" id="qGo" type="submit" :disabled="loading">{{ t('fill') }}</button>
+    <p class="tick-out" id="qOut" :class="{ no: tick.kind === 'bad' || tick.kind === 'fail' }"><template v-for="(x, i) in tickParts" :key="i"><b v-if="x.b">{{ x.s }}</b><template v-else>{{ x.s }}</template></template></p>
+  </form>
+
+  <div class="tabs" role="tablist">
+    <button v-for="(k, i) in TABS" :key="k" class="tab" role="tab" :id="'tab-' + k" :aria-controls="'pane-' + k"
+      :aria-selected="tab === k" :tabindex="tab === k ? 0 : -1" @click="tab = k"
+      @keydown.right.prevent="moveTab(i, 1)" @keydown.left.prevent="moveTab(i, -1)">{{ t(TAB_LABEL[k]) }}</button>
+  </div>
+
+  <div class="grid" id="pane-buyin" role="tabpanel" aria-labelledby="tab-buyin" :hidden="tab !== 'buyin'">
+    <form class="panel" autocomplete="off" @submit.prevent>
+      <fieldset>
+        <legend>{{ t('holding') }}</legend>
+        <div class="row2">
+          <label for="s"><span>{{ t('shares') }}</span><input id="s" type="number" inputmode="decimal" min="0" step="any" v-model="f1.s"></label>
+          <label for="a"><span>{{ t('avgPrice') }}</span><input id="a" type="number" inputmode="decimal" min="0" step="any" v-model="f1.a"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>{{ t('planned') }}</legend>
+        <div class="row2">
+          <label for="b"><span>{{ t('shares') }}</span><input id="b" type="number" inputmode="decimal" min="0" step="any" v-model="f1.b"></label>
+          <label for="p"><span>{{ t('buyPrice') }}</span><input id="p" type="number" inputmode="decimal" min="0" step="any" v-model="f1.p"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>{{ t('dividend') }}</legend>
+        <label for="d"><span>{{ t('annDiv') }}</span><input id="d" type="number" inputmode="decimal" min="0" step="any" v-model="f1.d"></label>
+        <p class="hint">{{ t('quarterly') }}</p>
+      </fieldset>
+      <p class="err" id="err" v-if="buyErr">{{ t(buyErr) }}</p>
+    </form>
+
+    <section class="panel" aria-live="polite">
+      <template v-if="bo">
+        <div class="headline">
+          <div><div class="lbl">{{ t('newAvg') }}</div><div class="big" id="oNewAvg">{{ bo.newAvg }}</div></div>
+          <span class="chip" id="oChip" :class="bo.chipC">{{ bo.chip }}</span>
+        </div>
+
+        <div class="scale" aria-hidden="true">
+          <div class="track"></div>
+          <div class="arrow" :class="bo.arrowC" :style="{ left: bo.arrowL + '%', width: bo.arrowW + '%' }"></div>
+          <div class="mk mk-old" :style="{ left: bo.old + '%', top: bo.oldTop }"><span>{{ t('mkOld') }}</span><span>{{ bo.oldV }}</span><span class="dot"></span></div>
+          <div class="mk mk-buy below" :style="{ left: bo.buy + '%' }" :hidden="bo.buyHidden"><span class="dot"></span><span>{{ bo.buyV }}</span><span>{{ t('mkBuy') }}</span></div>
+          <div class="mk mk-new" :style="{ left: bo.nw + '%' }"><span>{{ t('mkNew') }}</span><span>{{ bo.newV }}</span><span class="dot"></span></div>
+        </div>
+
+        <h2>{{ t('divYield') }}</h2>
+        <div class="yields">
+          <div class="y"><span class="lbl">{{ t('onOld') }}</span><span class="v" id="yOld">{{ bo.yOld }}</span><span class="d flat">&nbsp;</span></div>
+          <div class="y main"><span class="lbl">{{ t('onNew') }}</span><span class="v" id="yNew">{{ bo.yNew }}</span><span class="d" id="yDelta" :class="bo.yDeltaC">{{ bo.yDelta }}</span></div>
+          <div class="y"><span class="lbl">{{ t('atBuy') }}</span><span class="v" id="yBuy">{{ bo.yBuy }}</span><span class="d flat">{{ t('thisLot') }}</span></div>
+        </div>
+
+        <div class="tbl">
+          <table>
+            <thead><tr><th></th><th>{{ t('before') }}</th><th>{{ t('after') }}</th><th>{{ t('change') }}</th></tr></thead>
+            <tbody>
+              <tr v-for="row in bo.rows" :key="row.k"><td>{{ t(row.k) }}</td><td>{{ row.a }}</td><td>{{ row.b }}</td><td :class="row.c">{{ row.ch }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+    </section>
+  </div>
+
+  <div class="grid" id="pane-recommended" role="tabpanel" aria-labelledby="tab-recommended" :hidden="tab !== 'recommended'">
+    <form class="panel" autocomplete="off" @submit.prevent>
+      <fieldset>
+        <legend>{{ t('target') }}</legend>
+        <label for="t"><span>{{ t('targetYield') }}</span><input id="t" type="number" inputmode="decimal" min="0" step="any" v-model="f2.t"></label>
+        <label for="d2"><span>{{ t('annDiv') }}</span><input id="d2" type="number" inputmode="decimal" min="0" step="any" v-model="f2.d"></label>
+      </fieldset>
+      <fieldset>
+        <legend>{{ t('holding') }}</legend>
+        <div class="row2">
+          <label for="s2"><span>{{ t('shares') }}</span><input id="s2" type="number" inputmode="decimal" min="0" step="any" v-model="f2.s"></label>
+          <label for="a2"><span>{{ t('avgPrice') }}</span><input id="a2" type="number" inputmode="decimal" min="0" step="any" v-model="f2.a"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>{{ t('planned') }}</legend>
+        <div class="row2">
+          <label for="b2"><span>{{ t('shares') }}</span><input id="b2" type="number" inputmode="decimal" min="0" step="any" v-model="f2.b"></label>
+          <label for="p2"><span>{{ t('buyPrice') }}</span><input id="p2" type="number" inputmode="decimal" min="0" step="any" v-model="f2.p"></label>
+        </div>
+        <button type="button" class="linkbtn" id="copy" @click="copyBuyin">{{ t('copy') }}</button>
+      </fieldset>
+      <p class="err" id="err2" v-if="recErr">{{ t(recErr) }}</p>
+    </form>
+
+    <section class="panel" aria-live="polite">
+      <template v-if="ro">
+        <div class="headline">
+          <div><div class="lbl" id="rMaxL">{{ ro.maxL }}</div><div class="big-rec" id="rMax">{{ ro.max }}</div></div>
+          <span class="chip" id="rMaxD" :class="ro.maxD.c">{{ ro.maxD.s }}</span>
+        </div>
+        <p class="target"><span>{{ t('recExplain') }}</span> <b id="rAvg">{{ ro.avg }}</b><span>{{ t('period') }}</span></p>
+
+        <h2>{{ t('wholePos') }}</h2>
+        <div class="rec">
+          <div class="y"><span class="lbl">{{ t('needBuy') }}</span><span class="v" id="rNeed">{{ ro.need }}</span><span class="d" id="rNeedD" :class="ro.needD.c">{{ ro.needD.s || ' ' }}</span><span class="note">{{ t('needBuyN') }}</span></div>
+          <div class="y"><span class="lbl">{{ t('needSh') }}</span><span class="v" id="rSh">{{ ro.sh }}</span><span class="d" id="rShD" :class="ro.shD.c">{{ ro.shD.s || ' ' }}</span><span class="note">{{ t('needShN') }}</span></div>
+          <div class="y"><span class="lbl">{{ t('curYield') }}</span><span class="v" id="rCur">{{ ro.cur }}</span><span class="d" id="rCurD" :class="ro.curD.c">{{ ro.curD.s || ' ' }}</span><span class="note">{{ t('curYieldN') }}</span></div>
+        </div>
+      </template>
+    </section>
+  </div>
+
+  <section class="panel" id="pane-detail" role="tabpanel" aria-labelledby="tab-detail" aria-live="polite" :hidden="tab !== 'detail'">
+    <p class="det-empty" id="detEmpty" v-if="!dm">{{ t('detEmpty') }}</p>
+    <div class="det" id="det" v-else>
+      <div class="det-head"><span class="det-name" id="dName">{{ dm.name }}</span><button type="button" class="split" id="dSplit" v-if="dm.splitTip"
+        :title="dm.splitTip" :aria-label="dm.splitTip" :aria-expanded="splitOpen" @click="splitOpen = !splitOpen"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg><span>{{ t('split') }}</span></button><span class="det-sub" id="dSub">{{ dm.sub }}</span></div>
+      <p class="split-n" id="dSplitN" v-if="dm.splitTip && splitOpen">{{ dm.splitTip }}</p>
+      <div class="kpis">
+        <div class="y main"><span class="lbl">{{ t('curPrice') }}</span><span class="v" id="dPx">{{ dm.px }}</span><span class="d" id="dPxD" :class="dm.pxC">{{ dm.pxD }}</span></div>
+        <div class="y"><span class="lbl" id="dTgtL">{{ t('maxBuyFor', tgt) }}</span>
+          <span class="step"><button type="button" id="dTgtDn" :aria-label="t('tgtDn')" :disabled="tgt <= 0.5" @click="stepTgt(-0.5)">−</button><span id="dTgtV">{{ tgt.toFixed(1) }}%</span><button type="button" id="dTgtUp" :aria-label="t('tgtUp')" @click="stepTgt(0.5)">+</button></span>
+          <span class="v" id="dMax">{{ dm.max }}</span><span class="d" id="dMaxD" :class="dm.maxC">{{ dm.maxD }}</span><span class="note" id="dTgtN">{{ t('maxBuyN', tgt) }}</span></div>
+        <div class="y"><span class="lbl">{{ t('divYield') }}</span><span class="v" id="dYld">{{ dm.yld }}</span><span class="note" id="dYldN">{{ dm.yldN }}</span></div>
+        <div class="y"><span class="lbl">{{ t('pe') }}</span><span class="v" id="dPe">{{ dm.pe }}</span><span class="note" id="dPeN">{{ dm.peN }}</span></div>
+        <div class="y"><span class="lbl">{{ t('avgAnn') }}</span><span class="v" id="dAvg">{{ dm.avg }}</span><span class="note" id="dAvgN">{{ dm.avgN }}</span></div>
+      </div>
+      <div>
+        <h2>{{ t('budgetH') }}</h2>
+        <div class="budget">
+          <label for="bud"><span>{{ t('budget') }}</span><input id="bud" type="number" inputmode="decimal" min="0" step="any" placeholder="100000" v-model="budget"></label>
+          <div class="kpis bud-out">
+            <div class="y main"><span class="lbl">{{ t('budShares') }}</span><span class="v" id="bSh">{{ bud.sh }}</span><span class="note" id="bShN">{{ bud.shN }}</span></div>
+            <div class="y"><span class="lbl">{{ t('budCost') }}</span><span class="v" id="bCost" :title="bud.costT">{{ bud.cost }}</span><span class="note" id="bCostN">{{ bud.costN }}</span></div>
+            <div class="y"><span class="lbl">{{ t('budLeft') }}</span><span class="v" id="bLeft" :title="bud.leftT">{{ bud.left }}</span><span class="note" id="bLeftN">{{ bud.leftN }}</span></div>
+            <div class="y"><span class="lbl">{{ t('budDiv') }}</span><span class="v" id="bDiv" :title="bud.divT">{{ bud.div }}</span><span class="note" id="bDivN">{{ bud.divN }}</span></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2>{{ t('range') }}</h2>
+        <div class="range" aria-hidden="true">
+          <div class="track"></div>
+          <div class="now" id="dNow" :style="{ left: dm.at + '%' }"><span id="dNowV" :style="dm.nowStyle">{{ t('now') + dm.px }}</span></div>
+          <div class="end" style="left:0"><span>{{ t('low') }}</span> <b id="dLo">{{ dm.lo }}</b><br><span>{{ dm.loD }}</span></div>
+          <div class="end" style="right:0;text-align:right"><span>{{ t('high') }}</span> <b id="dHi">{{ dm.hi }}</b><br><span>{{ dm.hiD }}</span></div>
+        </div>
+        <p class="hint" id="dRangeN">{{ dm.rangeN }}</p>
+      </div>
+      <div>
+        <h2>{{ t('history') }}</h2>
+        <div class="hist-head"><span class="lbl">{{ t('payingFor') }}</span><span class="hist-v" id="dYrs">{{ dm.yrs }}</span><span class="note" id="dYrsN">{{ dm.yrsN }}</span></div>
+        <div class="bars" id="dBars" role="img" :ref="setBars" :class="{ dense: dense }" :aria-label="dm.barsAria">
+          <div v-for="x in dm.bars" :key="x.y" class="bar" :class="{ partial: x.partial }" :style="{ height: x.h + '%' }" tabindex="0"
+            :title="x.txt" :aria-label="x.txt" @mouseenter="tipY = x.y" @focus="tipY = x.y" @click="tipY = x.y"><span class="yl" v-if="x.yl">{{ x.yl }}</span></div>
+        </div>
+        <div class="bars-x"><span id="dX0">{{ dm.x0 }}</span><span id="dX1">{{ dm.x1 }}</span></div>
+        <p class="bar-tip" id="dTip"><template v-for="(x, i) in tipParts" :key="i"><b v-if="x.b">{{ x.s }}</b><template v-else>{{ x.s }}</template></template></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="pane-watch" role="tabpanel" aria-labelledby="tab-watch" :hidden="tab !== 'watch'">
+    <div class="wl-bar">
+      <p class="wl-count" id="wlCount">{{ watch.length ? t('wlCount', watch.length, plural(watch.length)) : '' }}</p>
+      <div class="wl-act">
+        <button type="button" class="linkbtn" id="wlExport" :disabled="!watch.length" @click="exportWatch">{{ t('wlExport') }}</button>
+        <label class="linkbtn" for="wlFile"><span>{{ t('wlImport') }}</span><input type="file" id="wlFile" accept=".json,application/json" hidden @change="importWatch"></label>
+      </div>
+    </div>
+    <p class="wl-msg" id="wlMsg" v-if="wlMsg" :class="{ no: wlMsg.bad }">{{ t(wlMsg.key, ...wlMsg.args) }}</p>
+    <p class="det-empty" id="wlEmpty" v-if="!watch.length">{{ t('wlEmpty') }}</p>
+    <div class="tbl" id="wlWrap" v-else>
+      <table class="wl">
+        <thead><tr><th>{{ t('wlCode') }}</th><th>{{ t('wlName') }}</th><th>{{ t('wlPrice') }}</th><th>{{ t('divYield') }}</th><th>{{ t('wlDate') }}</th><th></th></tr></thead>
+        <tbody id="wlBody">
+          <tr v-for="w in watch" :key="w.code" @click="openWatch(w)">
+            <td><button type="button" class="open">{{ w.code }}</button></td>
+            <td>{{ w.name || '' }}</td>
+            <td>{{ w.close != null ? money(w.close) : '–' }}</td>
+            <td>{{ w.yield != null ? pct(w.yield) : '–' }}</td>
+            <td>{{ w.date || '' }}</td>
+            <td><button type="button" class="rm" :aria-label="t('wlRemove', w.code)" @click.stop="removeWatch(w.code)">×</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3.4.38/dist/vue.global.prod.js"></script>
+<script>
+(function () {
+  // ---- locale: English / Traditional Chinese, remembered in localStorage ----
+  const I18N = {
+    en: {
+      title: "Buy-In Yield Calculator", sub: "Example numbers are filled in; replace them with yours.",
+      code: "TW stock / ETF code", codePh: "2330 or 0056", fill: "Fill price & dividend",
+      tickIntro: "Fills buy price (latest close) and annual dividend (cash paid in the last 12 months) on both calculator tabs, and loads the Stock detail tab. Data: FinMind.",
+      tickBad: "Enter a TW code like 2330 or 0056.", tickLoading: "Looking up {0}…", tickFail: "Lookup failed: {0}. Enter numbers by hand.",
+      tickClose: " · close ", tickDiv: ") · dividend ", tickPay: " ({0} payout{1} in 12 mo) · yield ",
+      tabBuyin: "Buy-in calculator", tabRec: "Recommended price", tabDetail: "Stock detail",
+      holding: "Current holding", planned: "Planned buy-in", dividend: "Dividend",
+      shares: "Shares", avgPrice: "Avg price", buyPrice: "Buy price", annDiv: "Annual dividend per share",
+      quarterly: "Quarterly payer? Enter the quarterly amount × 4.",
+      newAvg: "New avg price", mkOld: "old avg", mkBuy: "buy", mkNew: "new avg",
+      divYield: "Dividend yield", onOld: "On old avg", onNew: "On new avg", atBuy: "At buy price", thisLot: "yield on this lot",
+      before: "Before", after: "After", change: "Change", totalCost: "Total cost", annDivs: "Annual dividends",
+      errNum: "Enter a number of 0 or more in every field.", errShares: "Total shares must be above 0.",
+      noChange: "no change", rises: "▲ rises ", falls: "▼ falls ", pts: " pts",
+      target: "Target", targetYield: "Target dividend yield (%)", copy: "Copy values from Buy-in calculator",
+      maxFor: "Max buy price for {0} yield",
+      recExplain: "Dividend ÷ target yield. Buy at or below this and the new shares earn the target on their own. Your whole position needs an avg price of at most", period: ".",
+      wholePos: "To bring your whole position to the target",
+      needBuy: "Buy price needed", needBuyN: "For your planned shares, buy at or below this price.",
+      needSh: "Shares needed", needShN: "At your buy price, buy at least this many shares.",
+      curYield: "Current yield", curYieldN: "Dividend ÷ your current avg price.",
+      needDiv: "Enter a dividend above 0", needTgt: "Enter a target above 0", noHolding: "No holding",
+      atTarget: "✓ at or above target", belowTarget: "✗ {0} pts below target", fits: "✓ your buy price fits", tooHigh: "✗ your buy price is {0} too high",
+      already: "✓ already at target", anyPrice: "Any price", enterPlanned: "Enter planned shares", unreachable: "Not reachable", buyMore: "✗ buy more shares",
+      anyAmount: "Any amount", mustAtOrBelow: "✗ buy price must be at or below {0}", mustBelow: "✗ buy price must be below {0}",
+      covers: "✓ your plan covers it", moreThan: "✗ {0} more than planned",
+      detEmpty: "Enter a TW stock or ETF code above and press the button to see its details here.",
+      curPrice: "Current price", closeOn: " · close ", maxBuyFor: "Max buy for {0}% yield", maxBuyN: "Last 12 months' cash dividend ÷ {0}%",
+      tgtDn: "Lower target yield by 0.5%", tgtUp: "Raise target yield by 0.5%",
+      nowBelow: "✓ now {0} below it", nowAbove: "✗ now {0} ({1}) above", noDiv12: "No dividend in the last 12 months", na: "n/a",
+      yldN: "{0} cash in the last 12 months ({1} payout{2}) ÷ price",
+      pe: "P/E ratio", peNone: "Not published for this code (ETFs have none).", peOk: "Price ÷ last 4 quarters' EPS", peNeg: "Last 4 quarters' EPS is negative",
+      avgAnn: "Avg annual dividend", avgAnnN: "Last 5 full years ({0}–{1}); all {2} paying years: {3}",
+      range: "All-time price range", low: "low", high: "high", now: "now ",
+      rangeN: "Daily high/low since {0}, not adjusted for dividends. ", rangeAdj: "Prices and dividends before {0} are scaled for par value changes / splits. ",
+      rangeNow: "Now {0} below the high, {1} above the low.",
+      history: "Dividend history", payingFor: "Paying dividends for", yrs: "{0} yr{1}", none: "None", noDivData: "No cash dividends in the data.",
+      yrsN: "Since {0} · {1} payouts · {2}. Counted from the earliest payout in FinMind's data.", noRecord: "no record for {0}", nYears: "{0} years", everyYear: "paid every year",
+      tipIntro: "Hover or tap a bar for the year's total. Labels show that year's dividend ÷ its average closing price.",
+      soFar: " (so far)", soFarShort: " so far", divAvgAria: "Cash dividend and yield on that year's average price, {0} to {1}",
+      barTxt: "{0}: {1}", barYld: ", {0} of avg price {1}", tipAvg: " ÷ avg price ", tipYld: " yield", listSep: ", ",
+      twse: "TWSE", tpex: "TPEx",
+      split: "Split", splitTip: "Share basis changed: {0}. Earlier prices and dividends are scaled to today's shares.",
+      splitEv: "{0} {1} (×{2})", "面額變更": "par value change", "分割": "split", "反分割": "reverse split",
+      tabWatch: "Watchlist", wlExport: "Export JSON", wlImport: "Import JSON", wlEmpty: "Stocks you look up are added here automatically. Click a row to open its details.",
+      wlCode: "Code", wlName: "Name", wlPrice: "Price", wlDate: "As of", wlCount: "{0} stock{1} · click a row to open its details", wlRemove: "Remove {0}",
+      wlImported: "Imported {0} new, {1} already in the list.", wlBadFile: "Couldn't read that file: {0}", wlNoStocks: "no TW stock codes found",
+      wlSaved: "Saved {0}.", wlSaveFail: "Export failed: {0}",
+      budgetH: "What your budget buys", budget: "Budget (NT$)", budShares: "Shares you can buy", budCost: "Total cost", budLeft: "Left over", budDiv: "Expected annual dividend",
+      budLots: "{0} lot{1} + {2} odd shares", budLotsOnly: "{0} lot{1} (1 lot = 1,000 shares)", budOdd: "{0} odd shares (under 1 lot)",
+      budCostN: "Shares {0} + fee {1} (0.1425%, min NT$20)", budLeftN: "{0} of your budget", budDivN: "Last 12 months' dividend × shares · {0} yield on cost",
+      budEnter: "Enter a budget", budTooSmall: "Not enough for 1 share incl. fee"
+    },
+    zh: {
+      title: "加碼殖利率計算機", sub: "已填入範例數字，請換成你自己的。",
+      code: "台股 / ETF 代號", codePh: "例如 2330 或 0056", fill: "帶入股價與股利",
+      tickIntro: "將買進價（最新收盤價）與年股利（近 12 個月現金股利）帶入兩個試算分頁，並載入個股資訊分頁。資料來源：FinMind。",
+      tickBad: "請輸入台股代號，例如 2330 或 0056。", tickLoading: "查詢 {0} 中…", tickFail: "查詢失敗：{0}。請手動輸入數字。",
+      tickClose: " · 收盤 ", tickDiv: "）· 股利 ", tickPay: "（近 12 個月配 {0} 次）· 殖利率 ",
+      tabBuyin: "加碼試算", tabRec: "建議買價", tabDetail: "個股資訊",
+      holding: "目前持股", planned: "計畫加碼", dividend: "股利",
+      shares: "股數", avgPrice: "均價", buyPrice: "買進價", annDiv: "每股年股利",
+      quarterly: "季配息？請輸入每季金額 × 4。",
+      newAvg: "新均價", mkOld: "舊均價", mkBuy: "買進", mkNew: "新均價",
+      divYield: "殖利率", onOld: "以舊均價", onNew: "以新均價", atBuy: "以買進價", thisLot: "這次買進的殖利率",
+      before: "加碼前", after: "加碼後", change: "變化", totalCost: "總成本", annDivs: "年股利總額",
+      errNum: "每個欄位請輸入 0 或以上的數字。", errShares: "總股數必須大於 0。",
+      noChange: "沒有變化", rises: "▲ 上升 ", falls: "▼ 下降 ", pts: " 個百分點",
+      target: "目標", targetYield: "目標殖利率（%）", copy: "從加碼試算帶入數值",
+      maxFor: "達到 {0} 殖利率的最高買價",
+      recExplain: "股利 ÷ 目標殖利率。在此價格以下買進，新買的股票本身就能達到目標。整體持股的均價需不高於", period: "。",
+      wholePos: "讓整體持股達到目標",
+      needBuy: "所需買價", needBuyN: "以計畫股數，買價需不高於此。",
+      needSh: "所需股數", needShN: "以你的買進價，至少要買這麼多股。",
+      curYield: "目前殖利率", curYieldN: "股利 ÷ 目前均價。",
+      needDiv: "請輸入大於 0 的股利", needTgt: "請輸入大於 0 的目標", noHolding: "尚無持股",
+      atTarget: "✓ 已達目標", belowTarget: "✗ 低於目標 {0} 個百分點", fits: "✓ 你的買進價符合", tooHigh: "✗ 你的買進價高了 {0}",
+      already: "✓ 已達目標", anyPrice: "任何價格", enterPlanned: "請輸入計畫股數", unreachable: "無法達到", buyMore: "✗ 需買更多股",
+      anyAmount: "任何數量", mustAtOrBelow: "✗ 買進價需不高於 {0}", mustBelow: "✗ 買進價需低於 {0}",
+      covers: "✓ 計畫股數足夠", moreThan: "✗ 比計畫多 {0} 股",
+      detEmpty: "在上方輸入台股或 ETF 代號並按下按鈕，即可在此查看個股資訊。",
+      curPrice: "目前股價", closeOn: " · 收盤 ", maxBuyFor: "殖利率 {0}% 的最高買價", maxBuyN: "近 12 個月現金股利 ÷ {0}%",
+      tgtDn: "目標殖利率減 0.5%", tgtUp: "目標殖利率加 0.5%",
+      nowBelow: "✓ 目前低於此價 {0}", nowAbove: "✗ 目前高於此價 {0}（{1}）", noDiv12: "近 12 個月沒有配息", na: "無",
+      yldN: "近 12 個月現金股利 {0}（配 {1} 次）÷ 股價",
+      pe: "本益比", peNone: "此代號沒有公布本益比（ETF 沒有）。", peOk: "股價 ÷ 近 4 季 EPS", peNeg: "近 4 季 EPS 為負",
+      avgAnn: "平均年股利", avgAnnN: "近 5 個完整年度（{0}–{1}）；全部 {2} 個配息年度：{3}",
+      range: "歷史價格區間", low: "最低", high: "最高", now: "目前 ",
+      rangeN: "自 {0} 起的每日最高 / 最低價，未做除息調整。", rangeAdj: "{0} 之前的股價與股利已依面額變更 / 分割調整。",
+      rangeNow: "目前比最高價低 {0}，比最低價高 {1}。",
+      history: "股利歷史", payingFor: "配息年數", yrs: "{0} 年", none: "無", noDivData: "資料中沒有現金股利。",
+      yrsN: "自 {0} 年起 · 共 {1} 次 · {2}。從 FinMind 資料中最早一次配息起算。", noRecord: "{0} 無紀錄", nYears: "{0} 個年度", everyYear: "每年都有配息",
+      tipIntro: "將游標移到或點選長條，查看當年合計。標籤為當年股利 ÷ 當年平均收盤價。",
+      soFar: "（至今）", soFarShort: " 至今", divAvgAria: "每年現金股利與以當年均價計算的殖利率，{0} 至 {1}",
+      barTxt: "{0}：{1}", barYld: "，為均價 {1} 的 {0}", tipAvg: " ÷ 均價 ", tipYld: " 殖利率", listSep: "、",
+      twse: "上市", tpex: "上櫃",
+      split: "曾分割", splitTip: "股本基礎曾變動：{0}。之前的股價與股利已換算成目前的股數。",
+      splitEv: "{0} {1}（×{2}）", "面額變更": "面額變更", "分割": "分割", "反分割": "反分割",
+      tabWatch: "追蹤清單", wlExport: "匯出 JSON", wlImport: "匯入 JSON", wlEmpty: "查詢過的股票會自動加入這裡。點選一列即可查看個股資訊。",
+      wlCode: "代號", wlName: "名稱", wlPrice: "股價", wlDate: "資料日期", wlCount: "共 {0} 檔 · 點選一列查看個股資訊", wlRemove: "移除 {0}",
+      wlImported: "已匯入 {0} 檔新股票，{1} 檔已在清單中。", wlBadFile: "無法讀取這個檔案：{0}", wlNoStocks: "找不到台股代號",
+      wlSaved: "已儲存 {0}。", wlSaveFail: "匯出失敗：{0}",
+      budgetH: "預算可以買多少", budget: "預算（新台幣）", budShares: "可買股數", budCost: "總成本", budLeft: "剩餘金額", budDiv: "預估年股利",
+      budLots: "{0} 張 + {2} 股零股", budLotsOnly: "{0} 張（1 張 = 1,000 股）", budOdd: "{0} 股零股（不到 1 張）",
+      budCostN: "股款 {0} + 手續費 {1}（0.1425%，最低 20 元）", budLeftN: "預算的 {0}", budDivN: "近 12 個月股利 × 股數 · 成本殖利率 {0}",
+      budEnter: "請輸入預算", budTooSmall: "預算不足以買 1 股（含手續費）"
+    }
+  };
+
+  const { createApp, ref, reactive, computed, watch: on, nextTick } = Vue;
+  const store = {
+    get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  const num = v => new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(v);
+  const money = v => new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(v);
+  const pct = v => (v * 100).toFixed(2) + "%";
+  const signed = (v, f) => (v > 0 ? "+" : v < 0 ? "−" : "±") + f(Math.abs(v));
+  // TW convention: up is red, down is green
+  const dir = (v, invert) => v === 0 ? "flat" : (v > 0) !== !!invert ? "up" : "down";
+  const iso = d => d.toISOString().slice(0, 10);
+  const nums = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, parseFloat(v)]));
+
+  // pure calc
+  function calc(s, a, b, p, d) {
+    const shares = s + b;
+    const cost0 = s * a, cost1 = cost0 + b * p;
+    const avg1 = shares > 0 ? cost1 / shares : 0;
+    return {
+      shares, cost0, cost1, avg1,
+      dAvg: avg1 - a, dAvgPct: a > 0 ? (avg1 - a) / a : 0,
+      y0: a > 0 ? d / a : 0, y1: avg1 > 0 ? d / avg1 : 0, yb: p > 0 ? d / p : 0,
+      div0: s * d, div1: shares * d
+    };
+  }
+
+  // pure calc: prices/shares needed for a target yield (ty as fraction)
+  function target(s, a, b, p, d, ty) {
+    const avgT = d / ty;                                      // max avg price for target yield
+    const maxBuy = avgT;                                      // a single lot hits target at or below this
+    const needBuy = b > 0 ? (avgT * (s + b) - s * a) / b : NaN; // buy price so new avg = avgT
+    let shares;                                               // shares at price p so new avg = avgT
+    if (s === 0) shares = p <= avgT ? 0 : Infinity;         // new position: avg = buy price
+    else if (a <= avgT) shares = 0;
+    else if (p >= avgT) shares = Infinity;
+    else shares = s * (a - avgT) / (avgT - p);
+    return { avgT, maxBuy, needBuy, shares };
+  }
+
+  // ticker lookup via FinMind (TWSE OpenAPI sends no CORS header, so browsers block it)
+  const FM = "https://api.finmindtrade.com/api/v4/data?";
+  async function fm(dataset, id, start) {
+    const q = { dataset, start_date: start }; if (id) q.data_id = id;
+    const r = await fetch(FM + new URLSearchParams(q));
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || j.status !== 200) throw new Error(j.msg || "HTTP " + r.status);
+    return j.data;
+  }
+  // mean daily close per calendar year (par-adjusted prices, same basis as adjusted dividends)
+  function avgCloseByYear(days) {
+    const acc = {};
+    days.forEach(x => { const y = +x.date.slice(0, 4); (acc[y] = acc[y] || [0, 0])[0] += x.close; acc[y][1]++; });
+    const out = {}; for (const y in acc) out[y] = acc[y][0] / acc[y][1];
+    return out;
+  }
+
+  async function lookup(code) {
+    const [info, px, dv, per, pv] = await Promise.all([
+      fm("TaiwanStockInfo", code, "1990-01-01").catch(() => []),
+      fm("TaiwanStockPrice", code, "1990-01-01"),   // full daily history: current price + all-time high/low
+      fm("TaiwanStockDividend", code, "1990-01-01"), // full dividend history: yield, years paid, averages
+      fm("TaiwanStockPER", code, iso(new Date(Date.now() - 30 * 864e5))).catch(() => []), // exchange-published P/E, P/B
+      fm("TaiwanStockSplitPrice", code, "1990-01-01").catch(() => []) // par value changes, splits, reverse splits
+    ]);
+    // par value changes (e.g. NT$10 -> NT$1) and splits change the share; scale earlier prices and dividends to today's share
+    const pars = pv.filter(x => x.before_price > 0 && x.after_price > 0)
+      .map(x => ({ date: x.date, type: x.type, k: +(x.after_price / x.before_price).toFixed(4) }));
+    const adj = date => pars.reduce((f, p) => date < p.date ? f * p.k : f, 1);
+    const days = px.filter(x => x.close > 0).map(x => { const f = adj(x.date); return f === 1 ? x : { ...x, close: x.close * f, max: x.max * f, min: x.min * f }; });
+    const last = days[days.length - 1];
+    if (!last) throw new Error("no price data for " + code);
+    const today = iso(new Date()), yearAgo = iso(new Date(Date.now() - 365 * 864e5));
+    // cash payouts, dated by ex-dividend day
+    const pays = dv.map(x => { const ex = x.CashExDividendTradingDate || x.date; return { ex, cash: ((x.CashEarningsDistribution || 0) + (x.CashStatutorySurplus || 0)) * adj(ex) }; })
+      .filter(x => x.cash > 0 && x.ex <= today);
+    const ttm = pays.filter(x => x.ex >= yearAgo);
+    let hi = days[0], lo = days[0];
+    days.forEach(x => { if (x.max > hi.max) hi = x; if (x.min > 0 && x.min < lo.min) lo = x; });
+    return {
+      code, name: info[0] && info[0].stock_name, type: info[0] && info[0].type, industry: info[0] && info[0].industry_category,
+      close: last.close, date: last.date, prev: days.length > 1 ? days[days.length - 2].close : last.close, since: days[0].date,
+      div: ttm.reduce((a, b) => a + b.cash, 0), n: ttm.length, pays, hi, lo, per: per[per.length - 1], avgClose: avgCloseByYear(days), pars
+    };
+  }
+
+  // budget -> shares at the current price, after TW broker fee (0.1425%, min NT$20)
+  const FEE = 0.001425, FEE_MIN = 20;
+  const fee = amt => Math.max(FEE_MIN, Math.round(amt * FEE));
+  const CODE_RE = /^[0-9A-Z]{4,6}$/;
+  const TABS = ["buyin", "recommended", "detail", "watch"];
+  const TAB_LABEL = { buyin: "tabBuyin", recommended: "tabRec", detail: "tabDetail", watch: "tabWatch" };
+
+  createApp({
+    setup() {
+      // ---- locale, remembered in localStorage ----
+      let saved = store.get("lang");
+      const lang = ref(I18N[saved] ? saved : /^en/i.test(navigator.language || "") ? "en" : "zh");
+      const t = (k, ...a) => (I18N[lang.value][k] ?? I18N.en[k] ?? k).replace(/\{(\d)\}/g, (_, i) => a[i]);
+      const plural = n => lang.value === "en" && n !== 1 ? "s" : "";
+      // big amounts in units (K/M/B or 萬/億); exact value stays in the tooltip
+      const compact = v => Math.abs(v) < 1e4 ? money(v) :
+        new Intl.NumberFormat(lang.value === "zh" ? "zh-TW" : "en", { notation: "compact", maximumFractionDigits: 2 }).format(v);
+      on(lang, l => {
+        store.set("lang", l);
+        document.documentElement.lang = l === "zh" ? "zh-Hant-TW" : "en";
+        document.title = t("title");
+      }, { immediate: true });
+
+      // ---- tabs; #recommended / #detail / #watch deep-link to a tab ----
+      let start = location.hash.slice(1);
+      if (!TABS.includes(start)) start = store.get("tab");
+      const tab = ref(TABS.includes(start) ? start : "buyin");
+      on(tab, v => store.set("tab", v));
+      const moveTab = (i, d) => {
+        tab.value = TABS[(i + d + TABS.length) % TABS.length];
+        nextTick(() => document.getElementById("tab-" + tab.value).focus());
+      };
+
+      // ---- buy-in calculator ----
+      const f1 = reactive({ s: 100, a: 50, b: 50, p: 40, d: 2 });
+      const buyErr = computed(() => {
+        const v = Object.values(nums(f1));
+        if (v.some(x => !isFinite(x) || x < 0)) return "errNum";
+        return v[0] + v[2] <= 0 ? "errShares" : "";
+      });
+      const lastBuy = ref(null);   // invalid input keeps the last good result on screen
+      on(() => [buyErr.value, { ...f1 }], () => { if (!buyErr.value) lastBuy.value = nums(f1); }, { immediate: true, deep: true });
+      const bo = computed(() => {
+        if (!lastBuy.value) return null;
+        const { s, a, b, p, d } = lastBuy.value, r = calc(s, a, b, p, d);
+        // scale: position old avg, buy, new avg
+        const lo = Math.min(a, p, r.avg1), hi = Math.max(a, p, r.avg1);
+        const pad = (hi - lo) * 0.12 || Math.max(hi * 0.1, 1);
+        const pos = x => ((x - (lo - pad)) / ((hi + pad) - (lo - pad))) * 100;
+        const dy = r.y1 - r.y0;
+        const rows = [["shares", s, r.shares, num], ["avgPrice", a, r.avg1, money], ["totalCost", r.cost0, r.cost1, money], ["annDivs", r.div0, r.div1, money]]
+          .map(([k, x, y, f]) => ({ k, a: f(x), b: f(y), ch: signed(y - x, f), c: k === "avgPrice" ? dir(r.dAvg) : y === x ? "flat" : "" }));
+        return {
+          newAvg: money(r.avg1),
+          chip: r.dAvg === 0 ? t("noChange") : t(r.dAvg > 0 ? "rises" : "falls") + money(Math.abs(r.dAvg)) + " (" + pct(Math.abs(r.dAvgPct)) + ")",
+          chipC: dir(r.dAvg),
+          old: pos(a), nw: pos(r.avg1), buy: pos(p), buyHidden: b === 0,
+          oldV: money(a), newV: money(r.avg1), buyV: money(p),
+          oldTop: Math.abs(pos(a) - pos(r.avg1)) < 14 ? "-22px" : "0",   // if new and old overlap, lift old label
+          arrowL: Math.min(pos(a), pos(r.avg1)), arrowW: Math.abs(pos(r.avg1) - pos(a)), arrowC: dir(r.dAvg),
+          yOld: pct(r.y0), yNew: pct(r.y1), yBuy: pct(r.yb),
+          yDelta: signed(dy * 100, x => x.toFixed(2)) + t("pts"), yDeltaC: dir(dy, true),
+          rows
+        };
+      });
+
+      // ---- recommended price ----
+      const f2 = reactive({ t: 6, d: 2, s: 0, a: 0, b: 1000, p: 40 });
+      const recErr = computed(() => ["s", "a", "b", "p", "d"].some(k => { const x = parseFloat(f2[k]); return !isFinite(x) || x < 0; }) ? "errNum" : "");
+      const lastRec = ref(null);
+      on(() => [recErr.value, { ...f2 }], () => { if (!recErr.value) lastRec.value = nums(f2); }, { immediate: true, deep: true });
+      const copyBuyin = () => ["s", "a", "b", "p", "d"].forEach(k => { f2[k] = f1[k]; });
+      const ro = computed(() => {
+        if (!lastRec.value) return null;
+        const { t: tv, s, a, b, p, d } = lastRec.value;
+        const mark = (good, s) => ({ s, c: good ? "ok" : "no" }), flat = s => ({ s, c: "flat" });
+        if (!isFinite(tv) || tv <= 0 || d <= 0) {
+          return { maxL: t("maxFor", "–"), max: "–", maxD: { s: d <= 0 ? t("needDiv") : t("needTgt"), c: "" }, avg: "–",
+            need: "–", needD: flat("–"), sh: "–", shD: flat("–"), cur: "–", curD: flat("") };
+        }
+        const r = target(s, a, b, p, d, tv / 100), o = { maxL: t("maxFor", tv + "%"), avg: money(r.avgT), max: money(r.maxBuy) };
+        o.cur = s > 0 && a > 0 ? pct(d / a) : t("noHolding");
+        o.curD = !(s > 0 && a > 0) ? flat(" ") :
+          mark(d / a >= tv / 100, d / a >= tv / 100 ? t("atTarget") : t("belowTarget", ((tv / 100 - d / a) * 100).toFixed(2)));
+        o.maxD = mark(p <= r.maxBuy, p <= r.maxBuy ? t("fits") : t("tooHigh", money(p - r.maxBuy)));
+
+        if (s > 0 && a <= r.avgT) { o.needD = mark(true, t("already")); o.need = b > 0 ? "≤ " + money(r.needBuy) : t("anyPrice"); }
+        else if (b <= 0) { o.need = "–"; o.needD = flat(t("enterPlanned")); }
+        else if (r.needBuy <= 0) { o.need = t("unreachable"); o.needD = mark(false, t("buyMore")); }
+        else { o.need = money(r.needBuy); o.needD = mark(p <= r.needBuy, p <= r.needBuy ? t("fits") : t("tooHigh", money(p - r.needBuy))); }
+
+        if (s === 0 && isFinite(r.shares)) { o.sh = t("anyAmount"); o.shD = mark(true, t("fits")); }
+        else if (r.shares === 0) { o.sh = "0"; o.shD = mark(true, t("already")); }
+        else if (!isFinite(r.shares)) { o.sh = t("unreachable"); o.shD = mark(false, t(s === 0 ? "mustAtOrBelow" : "mustBelow", money(r.avgT))); }
+        else {
+          const need = Math.ceil(r.shares - 1e-9);
+          o.sh = num(need); o.shD = mark(b >= need, b >= need ? t("covers") : t("moreThan", num(need - b)));
+        }
+        return o;
+      });
+
+      // ---- stock detail ----
+      const R = ref(null);           // last lookup result
+      const splitOpen = ref(false);  // split list, for touch screens where the tooltip can't show
+      const tipY = ref(null);        // bar the tip line describes
+      let tgt0 = parseFloat(store.get("detTarget"));
+      const tgt = ref(tgt0 >= 0.5 && tgt0 <= 30 ? tgt0 : 6);  // target yield for the max-buy card, 0.5% steps
+      const stepTgt = step => { tgt.value = Math.min(30, Math.max(0.5, Math.round((tgt.value + step) * 2) / 2)); store.set("detTarget", tgt.value); };
+
+      const dm = computed(() => {
+        const r = R.value;
+        if (!r) return null;
+        const d = +r.div.toFixed(3), thisYear = new Date().getFullYear(), o = { d };
+        o.name = (r.name ? r.name + " " : "") + r.code;
+        o.sub = [r.type === "tpex" || r.type === "twse" ? t(r.type) : r.type, r.industry].filter(Boolean).join(" · ");
+        // badge when the share basis changed (par value change, split, reverse split)
+        o.splitTip = r.pars.length ? t("splitTip", r.pars.map(p => t("splitEv", p.date, t(p.type || "分割"), p.k)).join(t("listSep"))) : "";
+        o.px = money(r.close);
+        const ch = r.close - r.prev;
+        o.pxD = signed(ch, money) + " (" + signed(r.prev ? ch / r.prev * 100 : 0, x => x.toFixed(2)) + "%)" + t("closeOn") + r.date;
+        o.pxC = dir(ch);
+        o.yld = pct(r.close > 0 ? d / r.close : 0);
+        o.yldN = t("yldN", money(d), r.n, plural(r.n));
+
+        // max buy price for the target yield
+        const maxBuy = d / (tgt.value / 100);
+        if (d > 0) {
+          const gap = r.close - maxBuy;
+          o.max = money(+maxBuy.toFixed(2));
+          o.maxD = gap <= 0 ? t("nowBelow", money(+(-gap).toFixed(2))) : t("nowAbove", money(+gap.toFixed(2)), pct(gap / maxBuy));
+          o.maxC = gap <= 0 ? "ok" : "no";
+        } else { o.max = t("na"); o.maxD = t("noDiv12"); o.maxC = "flat"; }
+
+        // P/E as published by the exchange; 0 means trailing earnings are negative, none for ETFs
+        const pe = r.per;
+        o.pe = pe && pe.PER > 0 ? pe.PER.toFixed(2) : t("na");
+        o.peN = !pe ? t("peNone") : t(pe.PER > 0 ? "peOk" : "peNeg") + " · P/B " + pe.PBR.toFixed(2) + " · " + pe.date;
+
+        // annual totals by ex-dividend year
+        const byYear = {};
+        r.pays.forEach(x => { const y = +x.ex.slice(0, 4); byYear[y] = (byYear[y] || 0) + x.cash; });
+        const years = Object.keys(byYear).map(Number).sort((a, b) => a - b);
+        o.bars = [];
+        if (!years.length) {
+          o.yrs = o.avg = t("none"); o.yrsN = t("noDivData"); o.avgN = o.x0 = o.x1 = o.barsAria = "";
+        } else {
+          const first = years[0], span = thisYear - first + 1, missed = [];
+          for (let y = first; y < thisYear; y++) if (!byYear[y]) missed.push(y);
+          o.yrs = t("yrs", span, plural(span));
+          o.yrsN = t("yrsN", first, r.pays.length,
+            missed.length ? t("noRecord", missed.length > 4 ? t("nYears", missed.length) : missed.join(t("listSep"))) : t("everyYear"));
+          const full = years.filter(y => y < thisYear), avg = ys => ys.reduce((a, y) => a + byYear[y], 0) / (ys.length || 1);
+          const last5 = []; for (let y = thisYear - 5; y < thisYear; y++) last5.push(y);
+          o.avg = money(+(last5.reduce((a, y) => a + (byYear[y] || 0), 0) / 5).toFixed(3));
+          o.avgN = t("avgAnnN", last5[0], last5[4], full.length, money(+avg(full).toFixed(3)));
+
+          // bar chart, one bar per calendar year from first payout to now; label = yield on that year's average close
+          const all = []; for (let y = first; y <= thisYear; y++) all.push(y);
+          const max = Math.max(...all.map(y => byYear[y] || 0));
+          o.bars = all.map(y => {
+            const v = byYear[y] || 0, ac = r.avgClose[y], yl = v && ac ? v / ac : 0;
+            const val = v ? money(+v.toFixed(3)) : t("none");
+            return { y, h: v / max * 100, partial: y === thisYear, yl: yl ? (yl * 100).toFixed(1) + "%" : "", yld: yl, ac, val,
+              txt: t("barTxt", y, val) + (y === thisYear ? t("soFar") : "") + (yl ? t("barYld", pct(yl), money(+ac.toFixed(2))) : "") };
+          });
+          o.barsAria = t("divAvgAria", first, thisYear);
+          o.x0 = first; o.x1 = thisYear + t("soFar");
+        }
+
+        // all-time range (daily high/low, not adjusted for dividends)
+        const span = r.hi.max - r.lo.min || 1;
+        o.lo = money(r.lo.min); o.loD = r.lo.date; o.hi = money(r.hi.max); o.hiD = r.hi.date;
+        o.at = Math.min(100, Math.max(0, (r.close - r.lo.min) / span * 100));
+        // keep the "now" label inside the panel near either end
+        o.nowStyle = { transform: "translateX(" + (o.at > 80 ? "-100%" : o.at < 20 ? "0" : "-50%") + ")", left: o.at > 80 ? "100%" : o.at < 20 ? "0" : "50%" };
+        o.rangeN = t("rangeN", r.since) +
+          (r.pars.length ? t("rangeAdj", r.pars.map(p => p.date + " (×" + p.k + ")").join(t("listSep"))) : "") +
+          t("rangeNow", pct((r.hi.max - r.close) / r.hi.max), pct((r.close - r.lo.min) / r.lo.min));
+        return o;
+      });
+
+      const tipParts = computed(() => {
+        const x = dm.value && dm.value.bars.find(b => b.y === tipY.value);
+        if (!x) return [{ s: t("tipIntro") }];
+        const p = [{ s: x.y + (x.partial ? t("soFarShort") : "") + (lang.value === "zh" ? "：" : ": ") }, { s: x.val, b: true }];
+        if (x.yld) p.push({ s: t("tipAvg") }, { s: money(+x.ac.toFixed(2)), b: true }, { s: " = " }, { s: pct(x.yld), b: true }, { s: t("tipYld") });
+        return p;
+      });
+
+      // year labels need ~30px per bar; on narrow screens rely on the tooltip
+      const barsW = ref(0);
+      const ro2 = new ResizeObserver(e => { barsW.value = e[0].contentRect.width; });
+      let barsEl = null;
+      const setBars = el => { if (el === barsEl) return; if (barsEl) ro2.unobserve(barsEl); barsEl = el; if (el) ro2.observe(el); };
+      const dense = computed(() => !!dm.value && dm.value.bars.length > 0 && barsW.value / dm.value.bars.length < 30);
+
+      // ---- budget ----
+      const budget = ref(store.get("budget") || "");
+      on(budget, v => store.set("budget", v));
+      const bud = computed(() => {
+        const empty = msg => ({ sh: "–", cost: "–", left: "–", div: "–", shN: msg });
+        if (!dm.value) return empty("");
+        const B = parseFloat(budget.value);
+        if (!(B > 0)) return empty(t("budEnter"));
+        const price = R.value.close, d = dm.value.d;
+        let n = Math.floor(B / (price * (1 + FEE)));
+        while (n > 0 && n * price + fee(n * price) > B) n--;   // min fee can push the last share over budget
+        if (n <= 0) return empty(t("budTooSmall"));
+        const amt = n * price, f = fee(amt), cost = amt + f, lots = Math.floor(n / 1000), odd = n % 1000, div = +(n * d).toFixed(2);
+        return {
+          sh: num(n),
+          shN: lots ? (odd ? t("budLots", num(lots), plural(lots), num(odd)) : t("budLotsOnly", num(lots), plural(lots))) : t("budOdd", num(odd)),
+          cost: compact(cost), costT: money(cost), costN: t("budCostN", money(amt), money(f)),
+          left: compact(B - cost), leftT: money(B - cost), leftN: t("budLeftN", pct((B - cost) / B)),
+          div: compact(div), divT: money(div), divN: t("budDivN", pct(d * n / cost))
+        };
+      });
+
+      // ---- watchlist: every successful lookup is saved here (localStorage), exportable as JSON ----
+      let w0 = [];
+      try { w0 = JSON.parse(store.get("watchlist") || "[]").filter(x => x && CODE_RE.test(x.code)); } catch (e) {}
+      const watch = ref(w0);
+      on(watch, v => store.set("watchlist", JSON.stringify(v)), { deep: true });
+      const wlMsg = ref(null); // { key, args, bad }
+      const removeWatch = code => { watch.value = watch.value.filter(x => x.code !== code); wlMsg.value = null; };
+      function addWatch(r) {
+        const d = +r.div.toFixed(3);
+        const row = { code: r.code, name: r.name || "", close: r.close, yield: r.close > 0 ? +(d / r.close).toFixed(6) : null, date: r.date };
+        const i = watch.value.findIndex(x => x.code === r.code);
+        if (i >= 0) watch.value[i] = { ...watch.value[i], ...row }; else watch.value.unshift(row);
+      }
+      async function exportWatch() {
+        const filename = "tw-watchlist-" + iso(new Date()) + ".json";
+        const data = JSON.stringify({ app: "buy-in-yield-calculator", version: 1, exported: new Date().toISOString(), stocks: watch.value }, null, 2);
+        try {
+          // inside claude.ai the page must ask the viewer to save; on a normal site a link download works
+          const dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null;
+          if (dl) await dl.save({ filename, data });
+          else {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([data], { type: "application/json" })); a.download = filename;
+            document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+          }
+          wlMsg.value = { key: "wlSaved", args: [filename] };
+        } catch (err) {
+          wlMsg.value = err && err.code === "declined" ? null : { key: "wlSaveFail", args: [(err && (err.message || err.code)) || "?"], bad: true };
+        }
+      }
+      async function importWatch(e) {
+        const file = e.target.files[0]; e.target.value = "";
+        if (!file) return;
+        try {
+          const j = JSON.parse(await file.text());
+          const list = (Array.isArray(j) ? j : j && j.stocks) || [];
+          // accept rows as objects or bare codes; keep only valid TW codes, dedupe against the list
+          const rows = list.map(x => typeof x === "string" ? { code: x } : x)
+            .filter(x => x && typeof x.code === "string" && CODE_RE.test(x.code.trim().toUpperCase()))
+            .map(x => ({ code: x.code.trim().toUpperCase(), name: typeof x.name === "string" ? x.name : "",
+              close: isFinite(x.close) ? +x.close : null, yield: isFinite(x.yield) ? +x.yield : null, date: typeof x.date === "string" ? x.date : "" }));
+          if (!rows.length) throw new Error(t("wlNoStocks"));
+          let added = 0, dup = 0;
+          rows.forEach(x => { if (watch.value.some(w => w.code === x.code)) dup++; else { watch.value.push(x); added++; } });
+          wlMsg.value = { key: "wlImported", args: [added, dup] };
+        } catch (err) {
+          wlMsg.value = { key: "wlBadFile", args: [err.message], bad: true };
+        }
+      }
+
+      // ---- ticker lookup ----
+      const q = ref(store.get("ticker") || "");
+      const loading = ref(false);
+      const tick = ref({ kind: "intro" });   // kept as state so a language switch redraws it
+      const tickParts = computed(() => {
+        const k = tick.value;
+        if (k.kind === "intro") return [{ s: t("tickIntro") }];
+        if (k.kind === "bad") return [{ s: t("tickBad") }];
+        if (k.kind === "loading") return [{ s: t("tickLoading", k.code) }];
+        if (k.kind === "fail") return [{ s: t("tickFail", k.msg) }];
+        const r = k.r, d = +r.div.toFixed(3);
+        return [{ s: (r.name ? r.name + " " : "") + r.code + t("tickClose") }, { s: money(r.close), b: true },
+          { s: (lang.value === "zh" ? "（" : " (") + r.date + t("tickDiv") }, { s: money(d), b: true },
+          { s: t("tickPay", r.n, plural(r.n)) }, { s: pct(r.close > 0 ? d / r.close : 0), b: true }];
+      });
+      async function go() {
+        const code = String(q.value).trim().toUpperCase();
+        if (!CODE_RE.test(code)) { tick.value = { kind: "bad" }; return; }
+        loading.value = true; tick.value = { kind: "loading", code };
+        try {
+          const r = await lookup(code);
+          const d = +r.div.toFixed(3);
+          f1.p = f2.p = r.close;
+          f1.d = f2.d = d;
+          R.value = r; splitOpen.value = false; tipY.value = null;
+          tick.value = { kind: "ok", r }; addWatch(r);
+          store.set("ticker", code);
+        } catch (err) {
+          tick.value = { kind: "fail", msg: err.message };
+        } finally { loading.value = false; }
+      }
+      const openWatch = w => { q.value = w.code; tab.value = "detail"; go(); };
+
+      return {
+        TABS, TAB_LABEL, lang, t, plural, money, pct, tab, moveTab,
+        f1, buyErr, bo, f2, recErr, ro, copyBuyin,
+        q, loading, tick, tickParts, go,
+        R, dm, splitOpen, tipY, tipParts, tgt, stepTgt, setBars, dense, budget, bud,
+        watch, wlMsg, removeWatch, exportWatch, importWatch, openWatch
+      };
+    }
+  }).mount("#app");
+})();
+</script>
+</body>
+</html>
