@@ -694,8 +694,14 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
     const today = iso(new Date()), yearAgo = iso(new Date(Date.now() - 365 * 864e5));
     // cash payouts, dated by ex-dividend day
     const pays = dv.map(x => { const ex = x.CashExDividendTradingDate || x.date; return { ex, cash: ((x.CashEarningsDistribution || 0) + (x.CashStatutorySurplus || 0)) * adj(ex) }; })
-      .filter(x => x.cash > 0 && x.ex <= today);
+      .filter(x => x.cash > 0 && x.ex <= today).sort((a, b) => a.ex < b.ex ? -1 : 1);
+    // last 12 months; ex-dates drift a few days, so a 365-day window can catch the same monthly/quarterly slot twice
+    // (00937B: 2025-10-20 and 2026-10-19). Drop the oldest while the window spans nearly a full year past the usual gap.
+    const day = d => Date.parse(d) / 864e5;
     const ttm = pays.filter(x => x.ex >= yearAgo);
+    const gaps = pays.filter(x => x.ex >= iso(new Date(Date.now() - 730 * 864e5))).map((x, i, a) => i ? day(x.ex) - day(a[i - 1].ex) : null).filter(g => g > 0).sort((a, b) => a - b);
+    const gap = gaps.length ? gaps[gaps.length >> 1] : 365;
+    while (ttm.length > 1 && day(ttm[ttm.length - 1].ex) - day(ttm[0].ex) > 365 - gap / 2) ttm.shift();
     let hi = days[0], lo = days[0];
     days.forEach(x => { if (x.max > hi.max) hi = x; if (x.min > 0 && x.min < lo.min) lo = x; });
     return {
