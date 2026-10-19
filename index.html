@@ -149,6 +149,19 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .bars-x { display: flex; justify-content: space-between; font: 500 11px var(--f-mono); color: var(--muted); margin-top: 4px; }
 .bar-tip { min-height: 20px; font-size: 13px; color: var(--muted); margin: 6px 0 0; }
 .bar-tip b { font-family: var(--f-mono); color: var(--fg); }
+/* financials: yearly net income columns, liabilities/equity meter */
+.fbars { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; align-items: end; height: 170px; margin-top: 12px; border-bottom: 1px solid var(--line); }
+.fbar { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; min-width: 0; }
+.fbar i { display: block; width: 100%; max-width: 64px; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+.fbar.neg i { background: var(--up); }
+.fbar.partial i { opacity: .4; }
+.fbar span { font: 500 11px var(--f-mono); color: var(--muted); margin-bottom: 3px; white-space: nowrap; }
+.fbars-x { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; font: 500 11px var(--f-mono); color: var(--muted); text-align: center; margin-top: 4px; }
+.meter { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--line); margin-top: 12px; }
+.meter .liab { background: var(--mark-buy); } .meter .eq { background: var(--accent); }
+.meter-k { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.meter-k b { font-family: var(--f-mono); color: var(--fg); font-weight: 600; }
+.fin td.sum, .fin td.sum + td { font-weight: 600; color: var(--fg); }
 .top { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; }
 .lang { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
 .lang button { font: 600 13px var(--f-body); color: var(--muted); background: none; border: 0; padding: 6px 12px; cursor: pointer; }
@@ -335,6 +348,51 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
     </div>
   </section>
 
+  <section class="panel" id="pane-financials" role="tabpanel" aria-labelledby="tab-financials" aria-live="polite" :hidden="tab !== 'financials'">
+    <p class="det-empty" v-if="!R">{{ t('finEmpty') }}</p>
+    <p class="det-empty" v-else-if="!fo || fo.kind === 'loading'">{{ t('finLoading', R.code) }}</p>
+    <p class="det-empty no" v-else-if="fo.kind === 'fail'">{{ t('finFail', fo.msg) }}</p>
+    <p class="det-empty" v-else-if="fo.kind === 'none'">{{ t('finNone', dm.name) }}</p>
+    <div class="det" v-else>
+      <div class="det-head"><span class="det-name">{{ dm.name }}</span><span class="det-sub">{{ t('finAsOf', fo.asOf) }}</span></div>
+      <div class="kpis">
+        <div class="y main"><span class="lbl">{{ t('finNi', fo.lastY) }}</span><span class="v" id="fNi" :title="fo.lastNiT">{{ fo.lastNi }}</span><span class="d" :class="fo.niC">{{ fo.niD }}</span><span class="note">{{ t('finNiN') }}</span></div>
+        <div class="y"><span class="lbl">{{ t('finEps', fo.lastY) }}</span><span class="v" id="fEps">{{ fo.lastEps }}</span><span class="note">{{ fo.ttm }}</span></div>
+        <div class="y"><span class="lbl">{{ t('finDebt') }}</span><span class="v" id="fDebt" :title="fo.debtT">{{ fo.debt }}</span><span class="d" :class="fo.cashC">{{ fo.cashD }}</span><span class="note">{{ fo.debtN }}</span></div>
+        <div class="y"><span class="lbl">{{ t('finRatio') }}</span><span class="v" id="fRatio">{{ fo.ratio }}</span><span class="note">{{ fo.ratioN }}</span></div>
+      </div>
+      <div>
+        <h2>{{ t('finIncomeH') }}</h2>
+        <div class="fbars" role="img" :aria-label="t('finIncomeH')">
+          <div v-for="x in fo.rows" :key="x.y" class="fbar" :class="{ neg: x.niV < 0, partial: x.partial }" :title="x.label + ': ' + x.ni"><span>{{ x.niS }}</span><i :style="{ height: x.h + '%' }"></i></div>
+        </div>
+        <div class="fbars-x"><span v-for="x in fo.rows" :key="x.y">{{ x.partial ? x.y + '*' : x.y }}</span></div>
+        <p class="hint" v-if="fo.ytdN">{{ fo.ytdN }}</p>
+        <div class="tbl">
+          <table class="fin">
+            <thead><tr><th>{{ t('finYear') }}</th><th>{{ t('finRev') }}</th><th>{{ t('finNiCol') }}</th><th>{{ t('finMargin') }}</th><th>EPS</th></tr></thead>
+            <tbody>
+              <tr v-for="x in fo.rows.slice().reverse()" :key="x.y"><td>{{ x.label }}</td><td :title="x.revT">{{ x.rev }}</td><td :title="x.niT" :class="{ no: x.niV < 0 }">{{ x.ni }}</td><td>{{ x.margin }}</td><td :class="{ no: x.epsV < 0 }">{{ x.eps }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div v-if="fo.bs">
+        <h2>{{ t('finDebtH', fo.bs.date) }}</h2>
+        <div class="meter" aria-hidden="true"><div class="liab" :style="{ width: fo.bs.ratioP + '%' }"></div><div class="eq" :style="{ width: (100 - fo.bs.ratioP) + '%' }"></div></div>
+        <div class="meter-k"><span>{{ t('finLiab') }} <b>{{ fo.ratio }}</b></span><span>{{ t('finEq') }} <b>{{ fo.bs.eqP }}</b></span></div>
+        <p class="hint" v-if="fo.bs.bank" style="margin-top:10px">{{ t('finBank') }}</p>
+        <div class="tbl">
+          <table class="fin">
+            <tbody>
+              <tr v-for="x in fo.bs.items" :key="x.k"><td :class="{ sum: x.sum }">{{ t(x.k) }}</td><td :title="x.t">{{ x.v }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="panel" id="pane-watch" role="tabpanel" aria-labelledby="tab-watch" :hidden="tab !== 'watch'">
     <div class="wl-bar">
       <p class="wl-count" id="wlCount">{{ watch.length ? t('wlCount', watch.length, plural(watch.length)) : '' }}</p>
@@ -420,7 +478,22 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       budgetH: "What your budget buys", budget: "Budget (NT$)", budShares: "Shares you can buy", budCost: "Total cost", budLeft: "Left over", budDiv: "Expected annual dividend",
       budLots: "{0} lot{1} + {2} odd shares", budLotsOnly: "{0} lot{1} (1 lot = 1,000 shares)", budOdd: "{0} odd shares (under 1 lot)",
       budCostN: "Shares {0} + fee {1} (0.1425%, min NT$20)", budLeftN: "{0} of your budget", budDivN: "Last 12 months' dividend × shares · {0} yield on cost",
-      budEnter: "Enter a budget", budTooSmall: "Not enough for 1 share incl. fee"
+      budEnter: "Enter a budget", budTooSmall: "Not enough for 1 share incl. fee",
+      tabFin: "Financials", finEmpty: "Look up a TW stock code above to see its income, EPS and debt here.",
+      finLoading: "Loading financial statements for {0}…", finFail: "Couldn't load financial data: {0}",
+      finNone: "FinMind has no financial statements for {0} (ETFs don't publish them).", finAsOf: "Quarterly reports through {0} · amounts in NT$",
+      finNi: "{0} net income", finNiN: "Profit attributable to owners of the parent", finYoY: "{0} vs {1}",
+      finEps: "{0} EPS", finTtm: "Last 4 quarters: {0} ({1} to {2})",
+      finDebt: "Borrowings & bonds", finNoDebt: "None", finDebtN: "Short-term {0} · long-term {1} · bonds {2}",
+      finNetCash: "✓ cash {0} covers it (net cash {1})", finNetDebt: "✗ cash {0} (net debt {1})", finBankV: "n/a",
+      finRatio: "Debt ratio", finRatioN: "Total liabilities {0} ÷ total assets {1} · liabilities/equity {2}",
+      finIncomeH: "Income, last 5 years", finYtd: "* {0} so far ({1} quarter{2}).",
+      finYear: "Year", finRev: "Revenue", finNiCol: "Net income", finMargin: "Net margin",
+      finYtdL: "{0} Q1–Q{1}", finDebtH: "Debt, as of {0}", finLiab: "Liabilities", finEq: "Equity",
+      finShort: "Short-term borrowings", finLong: "Long-term borrowings", finBonds: "Corporate bonds", finIbd: "Interest-bearing debt",
+      finCash: "Cash & equivalents", finOther: "Other liabilities (payables, taxes, leases…)", finTotLiab: "Total liabilities",
+      finTotEq: "Total equity", finTotAssets: "Total assets",
+      finBank: "Financial company: its liabilities are mostly customer deposits and insurance reserves, not borrowings."
     },
     zh: {
       title: "加碼殖利率計算機", sub: "已填入範例數字，請換成你自己的。",
@@ -474,7 +547,22 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       budgetH: "預算可以買多少", budget: "預算（新台幣）", budShares: "可買股數", budCost: "總成本", budLeft: "剩餘金額", budDiv: "預估年股利",
       budLots: "{0} 張 + {2} 股零股", budLotsOnly: "{0} 張（1 張 = 1,000 股）", budOdd: "{0} 股零股（不到 1 張）",
       budCostN: "股款 {0} + 手續費 {1}（0.1425%，最低 20 元）", budLeftN: "預算的 {0}", budDivN: "近 12 個月股利 × 股數 · 成本殖利率 {0}",
-      budEnter: "請輸入預算", budTooSmall: "預算不足以買 1 股（含手續費）"
+      budEnter: "請輸入預算", budTooSmall: "預算不足以買 1 股（含手續費）",
+      tabFin: "財務資料", finEmpty: "在上方查詢台股代號，即可在此查看獲利、EPS 與負債。",
+      finLoading: "載入 {0} 的財務報表中…", finFail: "無法載入財務資料：{0}",
+      finNone: "FinMind 沒有 {0} 的財務報表（ETF 不公布財報）。", finAsOf: "財報至 {0} · 金額單位新台幣",
+      finNi: "{0} 年淨利", finNiN: "歸屬於母公司業主之淨利", finYoY: "較 {1} 年 {0}",
+      finEps: "{0} 年 EPS", finTtm: "近 4 季：{0}（{1} 至 {2}）",
+      finDebt: "借款與公司債", finNoDebt: "無", finDebtN: "短期 {0} · 長期 {1} · 公司債 {2}",
+      finNetCash: "✓ 現金 {0} 足以償還（淨現金 {1}）", finNetDebt: "✗ 現金 {0}（淨負債 {1}）", finBankV: "不適用",
+      finRatio: "負債比", finRatioN: "總負債 {0} ÷ 總資產 {1} · 負債權益比 {2}",
+      finIncomeH: "近 5 年獲利", finYtd: "* {0} 年至今（{1} 季）。",
+      finYear: "年度", finRev: "營收", finNiCol: "淨利", finMargin: "淨利率",
+      finYtdL: "{0} Q1–Q{1}", finDebtH: "負債（{0}）", finLiab: "負債", finEq: "權益",
+      finShort: "短期借款", finLong: "長期借款", finBonds: "應付公司債", finIbd: "有息負債",
+      finCash: "現金及約當現金", finOther: "其他負債（應付款、稅、租賃…）", finTotLiab: "負債總額",
+      finTotEq: "權益總額", finTotAssets: "資產總額",
+      finBank: "金融業：負債大多是客戶存款與保險準備金，不是借款。"
     }
   };
 
@@ -565,12 +653,36 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
     };
   }
 
+  // financial statements: FinMind gives single-quarter income values; a year counts once all 4 quarters are in
+  async function finLookup(code) {
+    const [is, bs] = await Promise.all([
+      fm("TaiwanStockFinancialStatements", code, (new Date().getFullYear() - 6) + "-01-01"),
+      fm("TaiwanStockBalanceSheet", code, iso(new Date(Date.now() - 550 * 864e5)))
+    ]);
+    const byDate = rows => { const o = {}; rows.forEach(x => { (o[x.date] = o[x.date] || {})[x.type] = x.value; }); return o; };
+    const q = byDate(is), dates = Object.keys(q).sort();
+    const years = {};
+    dates.forEach(d => {
+      const v = q[d], y = +d.slice(0, 4), a = years[y] = years[y] || { y, n: 0, rev: 0, ni: 0, eps: 0 };
+      a.n++; a.rev += v.Revenue || 0; a.eps += v.EPS || 0;
+      a.ni += v.EquityAttributableToOwnersOfParent ?? v.IncomeAfterTaxes ?? v.IncomeAfterTax ?? 0;
+    });
+    const last4 = dates.slice(-4);
+    const b = byDate(bs), bd = Object.keys(b).sort().pop();
+    return {
+      code, quarters: dates.length, last: dates[dates.length - 1],
+      years: Object.values(years).sort((a, b) => a.y - b.y),
+      ttm: last4.length === 4 ? { eps: last4.reduce((a, d) => a + (q[d].EPS || 0), 0), from: last4[0], to: last4[3] } : null,
+      bs: bd ? { date: bd, ...b[bd] } : null
+    };
+  }
+
   // budget -> shares at the current price, after TW broker fee (0.1425%, min NT$20)
   const FEE = 0.001425, FEE_MIN = 20;
   const fee = amt => Math.max(FEE_MIN, Math.round(amt * FEE));
   const CODE_RE = /^[0-9A-Z]{4,6}$/;
-  const TABS = ["buyin", "recommended", "detail", "watch"];
-  const TAB_LABEL = { buyin: "tabBuyin", recommended: "tabRec", detail: "tabDetail", watch: "tabWatch" };
+  const TABS = ["buyin", "recommended", "detail", "financials", "watch"];
+  const TAB_LABEL = { buyin: "tabBuyin", recommended: "tabRec", detail: "tabDetail", financials: "tabFin", watch: "tabWatch" };
 
   createApp({
     setup() {
@@ -783,6 +895,61 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         };
       });
 
+      // ---- financials: fetched when the tab is opened, so a plain lookup stays at 5 requests ----
+      const fin = ref(null);   // { code, kind: loading|fail|ok, data | msg }
+      on([tab, R], async () => {
+        const r = R.value;
+        if (tab.value !== "financials" || !r || (fin.value && fin.value.code === r.code && fin.value.kind !== "fail")) return;
+        fin.value = { code: r.code, kind: "loading" };
+        let next;
+        try { next = { code: r.code, kind: "ok", data: await finLookup(r.code) }; }
+        catch (err) { next = { code: r.code, kind: "fail", msg: err.message }; }
+        if (R.value && R.value.code === r.code) fin.value = next;
+      }, { immediate: true });
+      const fo = computed(() => {
+        const f = fin.value, r = R.value;
+        if (!f || !r || f.code !== r.code) return null;
+        if (f.kind !== "ok") return f;
+        const D = f.data;
+        if (!D.quarters) return { kind: "none" };
+        const amt = v => compact(v), eps = v => (+v.toFixed(2)).toFixed(2);
+        const full = D.years.filter(a => a.n === 4).slice(-5), cur = D.years[D.years.length - 1];
+        const shown = full.concat(cur && cur.n < 4 ? [cur] : []);
+        const max = Math.max(1, ...shown.map(a => Math.abs(a.ni)));
+        const o = { kind: "ok", asOf: D.last };
+        o.rows = shown.map(a => ({
+          y: a.y, partial: a.n < 4, label: a.n < 4 ? t("finYtdL", a.y, a.n) : String(a.y),
+          rev: amt(a.rev), revT: money(a.rev), ni: amt(a.ni), niT: money(a.ni), niV: a.ni, niS: compact(a.ni),
+          h: Math.abs(a.ni) / max * 100, margin: a.rev ? pct(a.ni / a.rev) : "–", eps: eps(a.eps), epsV: a.eps
+        }));
+        o.ytdN = cur && cur.n < 4 ? t("finYtd", cur.y, cur.n, plural(cur.n)) : "";
+        const L = full[full.length - 1] || cur, P = full[full.length - 2];
+        o.lastY = L.y + (L.n < 4 ? "*" : ""); o.lastNi = amt(L.ni); o.lastNiT = money(L.ni); o.lastEps = eps(L.eps);
+        if (P && P.ni) { const ch = (L.ni - P.ni) / Math.abs(P.ni); o.niD = t("finYoY", signed(ch * 100, x => x.toFixed(1)) + "%", P.y); o.niC = dir(ch); }
+        o.ttm = D.ttm ? t("finTtm", eps(D.ttm.eps), D.ttm.from.slice(0, 7), D.ttm.to.slice(0, 7)) : "";
+        const B = D.bs;
+        if (B && B.TotalAssets) {
+          const st = B.ShorttermBorrowings || 0, lt = B.LongtermBorrowings || 0, bo = B.BondsPayable || 0, ibd = st + lt + bo;
+          const cash = B.CashAndCashEquivalents || 0, liab = B.Liabilities || 0, eq = B.Equity || 0, ta = B.TotalAssets;
+          const bank = /金融/.test(r.industry || "");
+          o.ratio = pct(liab / ta);
+          o.ratioN = t("finRatioN", amt(liab), amt(ta), eq > 0 ? (liab / eq).toFixed(2) : "–");
+          if (bank) { o.debt = t("finBankV"); o.debtN = t("finBank"); }
+          else {
+            o.debt = ibd ? amt(ibd) : t("finNoDebt"); o.debtT = money(ibd);
+            o.debtN = t("finDebtN", amt(st), amt(lt), amt(bo));
+            if (ibd) { o.cashD = t(cash >= ibd ? "finNetCash" : "finNetDebt", amt(cash), amt(Math.abs(cash - ibd))); o.cashC = cash >= ibd ? "ok" : "no"; }
+          }
+          const it = (k, v, sum) => ({ k, v: amt(v), t: money(v), sum });
+          o.bs = {
+            date: B.date, bank, ratioP: Math.min(100, liab / ta * 100), eqP: pct(eq / ta),
+            items: (bank ? [] : [it("finShort", st), it("finLong", lt), it("finBonds", bo), it("finIbd", ibd, true), it("finOther", liab - ibd)])
+              .concat([it("finTotLiab", liab, true), it("finTotEq", eq), it("finTotAssets", ta), it("finCash", cash)])
+          };
+        } else { o.ratio = o.debt = t("na"); o.debtN = o.ratioN = ""; }
+        return o;
+      });
+
       // ---- watchlist: every successful lookup is saved here (localStorage), exportable as JSON ----
       let w0 = [];
       try { w0 = JSON.parse(store.get("watchlist") || "[]").filter(x => x && CODE_RE.test(x.code)); } catch (e) {}
@@ -871,7 +1038,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         f1, buyErr, bo, f2, recErr, ro, copyBuyin,
         q, loading, tick, tickParts, go,
         R, dm, splitOpen, tipY, tipParts, tgt, stepTgt, setBars, dense, budget, bud,
-        watch, wlMsg, removeWatch, exportWatch, importWatch, openWatch
+        watch, wlMsg, removeWatch, exportWatch, importWatch, openWatch, fo
       };
     }
   }).mount("#app");
