@@ -119,6 +119,8 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 @media (max-width: 640px) { .budget { grid-template-columns: minmax(0, 1fr); } }
 .kpis.bud-out { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .bud-out .y .v { font-size: 20px; }
+.bud-out .y input.v { font: 600 20px var(--f-mono); padding: 4px 8px; margin: 2px 0; }
+.bud-out .y .hint-edit { font-size: 11px; color: var(--accent); }
 .det-sub { color: var(--muted); font-size: 13px; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
 .kpis .y { align-content: start; }
@@ -329,12 +331,12 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       <div>
         <h2>{{ t('budgetH') }}</h2>
         <div class="budget">
-          <label for="bud"><span>{{ t('budget') }}</span><input id="bud" type="number" inputmode="decimal" min="0" step="any" placeholder="100000" v-model="budget"></label>
+          <label for="bud"><span>{{ t('budget') }}</span><input id="bud" type="number" inputmode="decimal" min="0" step="any" placeholder="100000" v-model="budgetIn"></label>
           <div class="kpis bud-out">
-            <div class="y main"><span class="lbl">{{ t('budShares') }}</span><span class="v" id="bSh">{{ bud.sh }}</span><span class="note" id="bShN">{{ bud.shN }}</span></div>
+            <div class="y main"><span class="lbl">{{ t(budMode === 'div' ? 'budSharesNeed' : 'budShares') }}</span><span class="v" id="bSh">{{ bud.sh }}</span><span class="note" id="bShN">{{ bud.shN }}</span></div>
             <div class="y"><span class="lbl">{{ t('budCost') }}</span><span class="v" id="bCost" :title="bud.costT">{{ bud.cost }}</span><span class="note" id="bCostN">{{ bud.costN }}</span></div>
-            <div class="y"><span class="lbl">{{ t('budLeft') }}</span><span class="v" id="bLeft" :title="bud.leftT">{{ bud.left }}</span><span class="note" id="bLeftN">{{ bud.leftN }}</span></div>
-            <div class="y"><span class="lbl">{{ t('budDiv') }}</span><span class="v" id="bDiv" :title="bud.divT">{{ bud.div }}</span><span class="note" id="bDivN">{{ bud.divN }}</span></div>
+            <div class="y"><span class="lbl">{{ t(budMode === 'div' ? 'budNeed' : 'budLeft') }}</span><span class="v" id="bLeft" :title="bud.leftT">{{ bud.left }}</span><span class="note" id="bLeftN">{{ bud.leftN }}</span></div>
+            <div class="y main"><label for="bDivIn" class="lbl">{{ t('budDiv') }}</label><input id="bDivIn" class="v" type="number" inputmode="decimal" min="0" step="any" placeholder="10000" :disabled="!dm || !(dm.d > 0)" v-model="divIn"><span class="hint-edit">{{ t('budDivEdit') }}</span><span class="note" id="bDivN">{{ bud.divN }}</span></div>
           </div>
         </div>
       </div>
@@ -510,7 +512,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       budgetH: "What your budget buys", budget: "Budget (NT$)", budShares: "Shares you can buy", budCost: "Total cost", budLeft: "Left over", budDiv: "Expected annual dividend",
       budLots: "{0} lot{1} + {2} odd shares", budLotsOnly: "{0} lot{1} (1 lot = 1,000 shares)", budOdd: "{0} odd shares (under 1 lot)",
       budCostN: "Shares {0} + fee {1} (0.1425%, min NT$20)", budLeftN: "{0} of your budget", budDivN: "Last 12 months' dividend × shares · {0} yield on cost",
-      budEnter: "Enter a budget", budTooSmall: "Not enough for 1 share incl. fee",
+      budEnter: "Enter a budget or the dividend you want", budTooSmall: "Not enough for 1 share incl. fee",
+      budDivEdit: "✎ type the yearly dividend you want", budEnterDiv: "Enter the yearly dividend you want", budNeed: "Budget needed", budSharesNeed: "Shares needed",
+      budNeedN: "Gets you {0}/yr: {1} shares × {2} (last 12 months' dividend)",
       tabFin: "Financials", finEmpty: "Look up a TW stock code above to see its income, EPS and debt here.",
       finLoading: "Loading financial statements for {0}…", finFail: "Couldn't load financial data: {0}",
       finNone: "FinMind has no financial statements for {0} (ETFs don't publish them).", finAsOf: "Quarterly reports through {0} · amounts in NT$",
@@ -586,7 +590,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       budgetH: "預算可以買多少", budget: "預算（新台幣）", budShares: "可買股數", budCost: "總成本", budLeft: "剩餘金額", budDiv: "預估年股利",
       budLots: "{0} 張 + {2} 股零股", budLotsOnly: "{0} 張（1 張 = 1,000 股）", budOdd: "{0} 股零股（不到 1 張）",
       budCostN: "股款 {0} + 手續費 {1}（0.1425%，最低 20 元）", budLeftN: "預算的 {0}", budDivN: "近 12 個月股利 × 股數 · 成本殖利率 {0}",
-      budEnter: "請輸入預算", budTooSmall: "預算不足以買 1 股（含手續費）",
+      budEnter: "請輸入預算或想要的年股利", budTooSmall: "預算不足以買 1 股（含手續費）",
+      budDivEdit: "✎ 輸入想要的年股利", budEnterDiv: "請輸入想要的年股利", budNeed: "所需預算", budSharesNeed: "所需股數",
+      budNeedN: "每年可領 {0}：{1} 股 × {2}（近 12 個月股利）",
       tabFin: "財務資料", finEmpty: "在上方查詢台股代號，即可在此查看獲利、EPS 與負債。",
       finLoading: "載入 {0} 的財務報表中…", finFail: "無法載入財務資料：{0}",
       finNone: "FinMind 沒有 {0} 的財務報表（ETF 不公布財報）。", finAsOf: "財報至 {0} · 金額單位新台幣",
@@ -921,25 +927,54 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       const dense = computed(() => !!dm.value && dm.value.bars.length > 0 && barsW.value / dm.value.bars.length < 30);
 
       // ---- budget ----
+      // two-way: type a budget and get the dividend, or type the dividend you want and get the budget it takes
       const budget = ref(store.get("budget") || "");
+      const divWant = ref(store.get("budDiv") || "");
+      const budMode = ref(store.get("budMode") === "div" ? "div" : "budget");
       on(budget, v => store.set("budget", v));
+      on(divWant, v => store.set("budDiv", v));
+      on(budMode, v => store.set("budMode", v));
       const bud = computed(() => {
-        const empty = msg => ({ sh: "–", cost: "–", left: "–", div: "–", shN: msg });
+        const empty = msg => ({ sh: "–", cost: "–", left: "–", shN: msg });
         if (!dm.value) return empty("");
-        const B = parseFloat(budget.value);
-        if (!(B > 0)) return empty(t("budEnter"));
         const price = R.value.close, d = dm.value.d;
-        let n = Math.floor(B / (price * (1 + FEE)));
-        while (n > 0 && n * price + fee(n * price) > B) n--;   // min fee can push the last share over budget
-        if (n <= 0) return empty(t("budTooSmall"));
+        let n, B;
+        if (budMode.value === "div") {
+          if (!(d > 0)) return empty(t("noDiv12"));
+          const T = parseFloat(divWant.value);
+          if (!(T > 0)) return empty(t("budEnterDiv"));
+          n = Math.ceil(T / d - 1e-9);                       // fewest shares whose dividend reaches the target
+          const a = n * price;
+          B = Math.ceil(a + fee(a));                          // budget needed = total cost, rounded up to the dollar
+        } else {
+          B = parseFloat(budget.value);
+          if (!(B > 0)) return empty(t("budEnter"));
+          n = Math.floor(B / (price * (1 + FEE)));
+          while (n > 0 && n * price + fee(n * price) > B) n--;   // min fee can push the last share over budget
+          if (n <= 0) return empty(t("budTooSmall"));
+        }
         const amt = n * price, f = fee(amt), cost = amt + f, lots = Math.floor(n / 1000), odd = n % 1000, div = +(n * d).toFixed(2);
-        return {
-          sh: num(n),
+        const o = {
+          n, B, div, sh: num(n),
           shN: lots ? (odd ? t("budLots", num(lots), plural(lots), num(odd)) : t("budLotsOnly", num(lots), plural(lots))) : t("budOdd", num(odd)),
           cost: compact(cost), costT: money(cost), costN: t("budCostN", money(amt), money(f)),
-          left: compact(B - cost), leftT: money(B - cost), leftN: t("budLeftN", pct((B - cost) / B)),
-          div: compact(div), divT: money(div), divN: t("budDivN", pct(d * n / cost))
+          divN: t("budDivN", pct(d * n / cost))
         };
+        if (budMode.value === "div") {
+          o.left = compact(B); o.leftT = money(B); o.leftN = t("budNeedN", money(div), num(n), money(d));
+        } else {
+          o.left = compact(B - cost); o.leftT = money(B - cost); o.leftN = t("budLeftN", pct((B - cost) / B));
+        }
+        return o;
+      });
+      // the field you didn't type in shows the solved value
+      const budgetIn = computed({
+        get: () => budMode.value === "div" ? (bud.value.B ? String(bud.value.B) : "") : budget.value,
+        set: v => { budget.value = v; budMode.value = "budget"; }
+      });
+      const divIn = computed({
+        get: () => budMode.value === "budget" ? (bud.value.n ? String(bud.value.div) : "") : divWant.value,
+        set: v => { divWant.value = v; budMode.value = "div"; }
       });
 
       // ---- financials: fetched when the tab is opened, so a plain lookup stays at 5 requests ----
@@ -1116,7 +1151,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         TABS, TAB_LABEL, lang, t, plural, money, pct, tab, moveTab,
         f1, buyErr, bo, f2, recErr, ro, copyBuyin,
         q, loading, tick, tickParts, go,
-        R, dm, splitOpen, tipY, tipParts, tgt, stepTgt, setBars, dense, budget, bud,
+        R, dm, splitOpen, tipY, tipParts, tgt, stepTgt, setBars, dense, budget, bud, budMode, budgetIn, divIn,
         watch, wlMsg, removeWatch, exportWatch, importWatch, openWatch, fo
       };
     }
