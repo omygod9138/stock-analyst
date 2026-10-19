@@ -110,6 +110,13 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .wl tbody tr { cursor: pointer; }
 .wl tbody tr:hover td { background: var(--bg); }
 .wl td:first-child { font-family: var(--f-mono); color: var(--accent); font-weight: 600; }
+.wl-bud { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: end; margin-top: 14px; }
+.wl-bud label { flex: 0 1 220px; }
+.wl-bud .linkbtn { align-self: end; }
+.wl td.best { color: var(--accent); font-weight: 700; }
+.wl .rank { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 999px; font: 600 11px var(--f-mono); text-align: center; border: 1px solid var(--line); color: var(--muted); }
+.wl .rank.r1 { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+.wl td small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
 .wl td:nth-child(2) { font-family: var(--f-body); text-align: left; }
 .wl th:nth-child(2) { text-align: left; }
 .wl .open { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
@@ -460,15 +467,26 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         <label class="linkbtn" for="wlFile"><span>{{ t('wlImport') }}</span><input type="file" id="wlFile" accept=".json,application/json" hidden @change="importWatch"></label>
       </div>
     </div>
+    <div class="wl-bud" v-if="watch.length">
+      <label for="wlBud"><span>{{ t('wlBud') }}</span><input id="wlBud" type="number" inputmode="decimal" min="0" step="any" placeholder="100000" v-model="wlBudget"></label>
+      <button type="button" class="linkbtn" v-if="wlCmp" :aria-pressed="wlSort" @click="wlSort = !wlSort">{{ t(wlSort ? 'wlSortList' : 'wlSortBest') }}</button>
+      <p class="hint" style="flex:1 1 240px">{{ wlCmp ? t('wlBudN') : t('wlBudEnter') }}</p>
+    </div>
     <p class="wl-msg" id="wlMsg" v-if="wlMsg" :class="{ no: wlMsg.bad }">{{ t(wlMsg.key, ...wlMsg.args) }}</p>
     <p class="det-empty" id="wlEmpty" v-if="!watch.length">{{ t('wlEmpty') }}</p>
     <div class="tbl" id="wlWrap" v-else>
       <table class="wl">
-        <thead><tr><th>{{ t('wlCode') }}</th><th>{{ t('wlName') }}</th><th>{{ t('wlPrice') }}</th><th>{{ t('divYield') }}</th><th>{{ t('wlDate') }}</th><th></th></tr></thead>
+        <thead><tr><th>{{ t('wlCode') }}</th><th>{{ t('wlName') }}</th><template v-if="wlCmp"><th>{{ t('wlRank') }}</th><th>{{ t('budDiv') }}</th><th>{{ t('budShares') }}</th><th>{{ t('budCost') }}</th></template><th>{{ t('wlPrice') }}</th><th>{{ t('divYield') }}</th><th>{{ t('wlDate') }}</th><th></th></tr></thead>
         <tbody id="wlBody">
-          <tr v-for="w in watch" :key="w.code" @click="openWatch(w)">
+          <tr v-for="w in wlRows" :key="w.code" @click="openWatch(w)">
             <td><button type="button" class="open">{{ w.code }}</button></td>
             <td>{{ w.name || '' }}</td>
+            <template v-if="wlCmp">
+              <td><span v-if="w.c.rank" class="rank" :class="{ r1: w.c.rank === 1 }">{{ w.c.rank }}</span></td>
+              <td :class="{ best: w.c.rank === 1 }" :title="w.c.divT">{{ w.c.div }}<small>{{ w.c.yoc }}</small></td>
+              <td :title="w.c.lots">{{ w.c.sh }}</td>
+              <td :title="w.c.costT">{{ w.c.cost }}</td>
+            </template>
             <td>{{ w.close != null ? money(w.close) : '–' }}</td>
             <td>{{ w.yield != null ? pct(w.yield) : '–' }}</td>
             <td>{{ w.date || '' }}</td>
@@ -532,6 +550,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       splitEv: "{0} {1} (×{2})", "面額變更": "par value change", "分割": "split", "反分割": "reverse split",
       tabWatch: "Watchlist", wlExport: "Export JSON", wlImport: "Import JSON", wlEmpty: "Stocks you look up are added here automatically. Click a row to open its details.",
       wlCode: "Code", wlName: "Name", wlPrice: "Price", wlDate: "As of", wlCount: "{0} stock{1} · click a row to open its details", wlRemove: "Remove {0}",
+      wlBud: "Compare with a budget (NT$)", wlBudEnter: "Enter a budget to see how many shares, what it costs and the yearly dividend for each stock.",
+      wlBudN: "Shares at each stock's saved price incl. 0.1425% fee (min NT$20); dividend = last 12 months per share × shares. #1 pays the most. Refresh a price by clicking its row.",
+      wlRank: "Rank", wlSortBest: "Sort best first", wlSortList: "Back to list order", wlYoc: "{0} on cost",
       wlImported: "Imported {0} new, {1} already in the list.", wlBadFile: "Couldn't read that file: {0}", wlNoStocks: "no TW stock codes found",
       wlSaved: "Saved {0}.", wlSaveFail: "Export failed: {0}",
       budgetH: "What your budget buys", budget: "Budget (NT$)", budShares: "Shares you can buy", budCost: "Total cost", budLeft: "Left over", budDiv: "Expected annual dividend",
@@ -638,6 +659,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       splitEv: "{0} {1}（×{2}）", "面額變更": "面額變更", "分割": "分割", "反分割": "反分割",
       tabWatch: "追蹤清單", wlExport: "匯出 JSON", wlImport: "匯入 JSON", wlEmpty: "查詢過的股票會自動加入這裡。點選一列即可查看個股資訊。",
       wlCode: "代號", wlName: "名稱", wlPrice: "股價", wlDate: "資料日期", wlCount: "共 {0} 檔 · 點選一列查看個股資訊", wlRemove: "移除 {0}",
+      wlBud: "以相同預算比較（新台幣）", wlBudEnter: "輸入預算，即可看到每檔可買股數、成本與年股利。",
+      wlBudN: "以各檔儲存的股價計算，含 0.1425% 手續費（最低 20 元）；年股利 = 近 12 個月每股股利 × 股數。第 1 名領最多。點選該列可更新股價。",
+      wlRank: "排名", wlSortBest: "依最佳排序", wlSortList: "恢復清單順序", wlYoc: "成本殖利率 {0}",
       wlImported: "已匯入 {0} 檔新股票，{1} 檔已在清單中。", wlBadFile: "無法讀取這個檔案：{0}", wlNoStocks: "找不到台股代號",
       wlSaved: "已儲存 {0}。", wlSaveFail: "匯出失敗：{0}",
       budgetH: "預算可以買多少", budget: "預算（新台幣）", budShares: "可買股數", budCost: "總成本", budLeft: "剩餘金額", budDiv: "預估年股利",
@@ -1249,10 +1273,33 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       const watch = ref(w0);
       on(watch, v => store.set("watchlist", JSON.stringify(v)), { deep: true });
       const wlMsg = ref(null); // { key, args, bad }
+      // same budget across every watched stock: shares, cost (incl. fee) and yearly dividend, ranked by dividend
+      const wlBudget = ref(store.get("wlBudget") || store.get("budget") || "");
+      on(wlBudget, v => store.set("wlBudget", v));
+      const wlSort = ref(store.get("wlSort") === "1");
+      on(wlSort, v => store.set("wlSort", v ? "1" : "0"));
+      const wlCmp = computed(() => parseFloat(wlBudget.value) > 0);
+      const wlRows = computed(() => {
+        const B = parseFloat(wlBudget.value);
+        const rows = watch.value.map(w => {
+          if (!(B > 0)) return { ...w, c: {} };
+          const price = w.close, d = w.div ?? (w.yield != null && price ? w.yield * price : null);   // older saved rows have no div
+          if (!(price > 0)) return { ...w, c: { sh: "–", cost: "–", div: "–" } };
+          let n = Math.floor(B / (price * (1 + FEE)));
+          while (n > 0 && n * price + fee(n * price) > B) n--;
+          if (n <= 0) return { ...w, c: { sh: "0", cost: "–", div: "–", yoc: t("budTooSmall") } };
+          const amt = n * price, cost = amt + fee(amt), div = d != null ? n * d : null, lots = Math.floor(n / 1000), odd = n % 1000;
+          return { ...w, c: { n, sh: num(n), lots: lots ? (odd ? t("budLots", num(lots), plural(lots), num(odd)) : t("budLotsOnly", num(lots), plural(lots))) : t("budOdd", num(odd)),
+            cost: compact(cost), costT: money(cost), dv: div ?? -1, div: div != null ? compact(+div.toFixed(2)) : "–", divT: div != null ? money(+div.toFixed(2)) : "",
+            yoc: div != null ? t("wlYoc", pct(div / cost)) : "" } };
+        });
+        [...rows].filter(r => r.c.dv >= 0).sort((a, b) => b.c.dv - a.c.dv).forEach((r, i) => { r.c.rank = i + 1; });
+        return wlSort.value && B > 0 ? [...rows].sort((a, b) => (a.c.rank || 1e9) - (b.c.rank || 1e9)) : rows;
+      });
       const removeWatch = code => { watch.value = watch.value.filter(x => x.code !== code); wlMsg.value = null; };
       function addWatch(r) {
         const d = +r.div.toFixed(3);
-        const row = { code: r.code, name: r.name || "", close: r.close, yield: r.close > 0 ? +(d / r.close).toFixed(6) : null, date: r.date };
+        const row = { code: r.code, name: r.name || "", close: r.close, yield: r.close > 0 ? +(d / r.close).toFixed(6) : null, div: d, date: r.date };
         const i = watch.value.findIndex(x => x.code === r.code);
         if (i >= 0) watch.value[i] = { ...watch.value[i], ...row }; else watch.value.unshift(row);
       }
@@ -1283,7 +1330,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
           const rows = list.map(x => typeof x === "string" ? { code: x } : x)
             .filter(x => x && typeof x.code === "string" && CODE_RE.test(x.code.trim().toUpperCase()))
             .map(x => ({ code: x.code.trim().toUpperCase(), name: typeof x.name === "string" ? x.name : "",
-              close: isFinite(x.close) ? +x.close : null, yield: isFinite(x.yield) ? +x.yield : null, date: typeof x.date === "string" ? x.date : "" }));
+              close: isFinite(x.close) ? +x.close : null, yield: isFinite(x.yield) ? +x.yield : null, div: x.div != null && isFinite(x.div) ? +x.div : null, date: typeof x.date === "string" ? x.date : "" }));
           if (!rows.length) throw new Error(t("wlNoStocks"));
           let added = 0, dup = 0;
           rows.forEach(x => { if (watch.value.some(w => w.code === x.code)) dup++; else { watch.value.push(x); added++; } });
@@ -1331,7 +1378,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         f1, buyErr, bo, f2, recErr, ro, copyBuyin,
         q, loading, tick, tickParts, go,
         R, dm, splitOpen, tipY, tipParts, tgt, stepTgt, setBars, dense, budget, bud, budMode, budgetIn, divIn,
-        watch, wlMsg, removeWatch, exportWatch, importWatch, openWatch, fo
+        watch, wlMsg, removeWatch, wlBudget, wlSort, wlCmp, wlRows, exportWatch, importWatch, openWatch, fo
       };
     }
   }).mount("#app");
