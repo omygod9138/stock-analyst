@@ -116,9 +116,26 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .wl td.best { color: var(--accent); font-weight: 700; }
 .wl .rank { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 999px; font: 600 11px var(--f-mono); text-align: center; border: 1px solid var(--line); color: var(--muted); }
 .wl .rank.r1 { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+.light { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: -2px; margin-right: 6px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
+.light.lg { background: var(--down); } .light.ly { background: var(--mark-buy); } .light.lr { background: var(--up); } .light.lx { background: var(--line); }
+.wl-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); margin: 10px 0 0; }
 .wl td small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
 .wl td:nth-child(2) { font-family: var(--f-body); text-align: left; }
 .wl th:nth-child(2) { text-align: left; }
+@media (max-width: 480px) {
+  .wl th, .wl td { padding: 8px 4px; }
+  .wl th { white-space: normal; font-size: 12px; }
+  .wl td:nth-child(2) { white-space: normal; min-width: 3.5em; }
+  .wl .lt-v, .wl .c-date, .wl td small { display: none; }
+  .wl .light { margin-right: 0; width: 16px; height: 16px; }
+  .wl th, .wl td { padding: 8px 3px; }
+  .wl th { font-size: 11px; letter-spacing: 0; }
+  .wl td:nth-child(3) { white-space: normal; }
+  .wl td:nth-child(3) .rank { display: block; width: max-content; margin: 0 0 2px auto; }
+  .wl .rm { width: 22px; }
+  .wl th:first-child, .wl td:first-child { padding-left: 0; }
+  .wl th:last-child, .wl td:last-child { padding-right: 0; }
+}
 .wl .open { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .wl .rm { font: 600 14px var(--f-body); color: var(--muted); background: none; border: 1px solid transparent; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; }
 .wl .rm:hover { color: var(--up); border-color: var(--line); }
@@ -472,24 +489,20 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       <button type="button" class="linkbtn" v-if="wlCmp" :aria-pressed="wlSort" @click="wlSort = !wlSort">{{ t(wlSort ? 'wlSortList' : 'wlSortBest') }}</button>
       <p class="hint" style="flex:1 1 240px">{{ wlCmp ? t('wlBudN') : t('wlBudEnter') }}</p>
     </div>
+    <p class="wl-legend" v-if="watch.length"><span><span class="light lg"></span>{{ t('wlGreen') }}</span><span><span class="light ly"></span>{{ t('wlAmber') }}</span><span><span class="light lr"></span>{{ t('wlRed') }}</span><span><span class="light lx"></span>{{ t('wlGrey') }}</span></p>
     <p class="wl-msg" id="wlMsg" v-if="wlMsg" :class="{ no: wlMsg.bad }">{{ t(wlMsg.key, ...wlMsg.args) }}</p>
     <p class="det-empty" id="wlEmpty" v-if="!watch.length">{{ t('wlEmpty') }}</p>
     <div class="tbl" id="wlWrap" v-else>
       <table class="wl">
-        <thead><tr><th>{{ t('wlCode') }}</th><th>{{ t('wlName') }}</th><template v-if="wlCmp"><th>{{ t('wlRank') }}</th><th>{{ t('budDiv') }}</th><th>{{ t('budShares') }}</th><th>{{ t('budCost') }}</th></template><th>{{ t('wlPrice') }}</th><th>{{ t('divYield') }}</th><th>{{ t('wlDate') }}</th><th></th></tr></thead>
+        <thead><tr><th>{{ t('wlCode') }}</th><th>{{ t('wlName') }}</th><th>{{ t('budDiv') }}</th><th>{{ t('wlLiq') }}</th><th>{{ t('wlLiab') }}</th><th class="c-date">{{ t('wlDate') }}</th><th></th></tr></thead>
         <tbody id="wlBody">
           <tr v-for="w in wlRows" :key="w.code" @click="openWatch(w)">
             <td><button type="button" class="open">{{ w.code }}</button></td>
             <td>{{ w.name || '' }}</td>
-            <template v-if="wlCmp">
-              <td><span v-if="w.c.rank" class="rank" :class="{ r1: w.c.rank === 1 }">{{ w.c.rank }}</span></td>
-              <td :class="{ best: w.c.rank === 1 }" :title="w.c.divT">{{ w.c.div }}<small>{{ w.c.yoc }}</small></td>
-              <td :title="w.c.lots">{{ w.c.sh }}</td>
-              <td :title="w.c.costT">{{ w.c.cost }}</td>
-            </template>
-            <td>{{ w.close != null ? money(w.close) : '–' }}</td>
-            <td>{{ w.yield != null ? pct(w.yield) : '–' }}</td>
-            <td>{{ w.date || '' }}</td>
+            <td :class="{ best: w.c.rank === 1 }" :title="w.c.divT"><span v-if="w.c.rank" class="rank" :class="{ r1: w.c.rank === 1 }">{{ w.c.rank }}</span> {{ wlCmp ? w.c.div : '–' }}<small>{{ w.c.yoc }}</small></td>
+            <td :title="w.f.liqT"><span class="light" :class="w.f.liqC"></span><span class="lt-v">{{ w.f.liq }}</span></td>
+            <td :title="w.f.liabT"><span class="light" :class="w.f.liabC"></span><span class="lt-v">{{ w.f.liab }}</span></td>
+            <td class="c-date">{{ w.date || '' }}</td>
             <td><button type="button" class="rm" :aria-label="t('wlRemove', w.code)" @click.stop="removeWatch(w.code)">×</button></td>
           </tr>
         </tbody>
@@ -552,7 +565,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       wlCode: "Code", wlName: "Name", wlPrice: "Price", wlDate: "As of", wlCount: "{0} stock{1} · click a row to open its details", wlRemove: "Remove {0}",
       wlBud: "Compare with a budget (NT$)", wlBudEnter: "Enter a budget to see how many shares, what it costs and the yearly dividend for each stock.",
       wlBudN: "Shares at each stock's saved price incl. 0.1425% fee (min NT$20); dividend = last 12 months per share × shares. #1 pays the most. Refresh a price by clicking its row.",
-      wlRank: "Rank", wlSortBest: "Sort best first", wlSortList: "Back to list order", wlYoc: "{0} on cost",
+      wlRank: "Rank", wlLiq: "Liquidity", wlLiab: "Liability",
+      wlGreen: "healthy", wlAmber: "watch", wlRed: "weak", wlGrey: "no data / no standard", wlNoFin: "No financial statements (ETF) or not loaded yet",
+      wlLiqT: "Liquidity score {0}/100, {1} · balance sheet {2}", wlNoStd: "No sector standard · balance sheet {0}", wlSortBest: "Sort best first", wlSortList: "Back to list order", wlYoc: "{0} on cost",
       wlImported: "Imported {0} new, {1} already in the list.", wlBadFile: "Couldn't read that file: {0}", wlNoStocks: "no TW stock codes found",
       wlSaved: "Saved {0}.", wlSaveFail: "Export failed: {0}",
       budgetH: "What your budget buys", budget: "Budget (NT$)", budShares: "Shares you can buy", budCost: "Total cost", budLeft: "Left over", budDiv: "Expected annual dividend",
@@ -661,7 +676,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       wlCode: "代號", wlName: "名稱", wlPrice: "股價", wlDate: "資料日期", wlCount: "共 {0} 檔 · 點選一列查看個股資訊", wlRemove: "移除 {0}",
       wlBud: "以相同預算比較（新台幣）", wlBudEnter: "輸入預算，即可看到每檔可買股數、成本與年股利。",
       wlBudN: "以各檔儲存的股價計算，含 0.1425% 手續費（最低 20 元）；年股利 = 近 12 個月每股股利 × 股數。第 1 名領最多。點選該列可更新股價。",
-      wlRank: "排名", wlSortBest: "依最佳排序", wlSortList: "恢復清單順序", wlYoc: "成本殖利率 {0}",
+      wlRank: "排名", wlLiq: "流動性", wlLiab: "負債比",
+      wlGreen: "健康", wlAmber: "留意", wlRed: "偏弱", wlGrey: "無資料／無標準", wlNoFin: "沒有財報（ETF）或尚未載入",
+      wlLiqT: "流動性分數 {0}／100，{1} · 財報 {2}", wlNoStd: "尚無產業標準 · 財報 {0}", wlSortBest: "依最佳排序", wlSortList: "恢復清單順序", wlYoc: "成本殖利率 {0}",
       wlImported: "已匯入 {0} 檔新股票，{1} 檔已在清單中。", wlBadFile: "無法讀取這個檔案：{0}", wlNoStocks: "找不到台股代號",
       wlSaved: "已儲存 {0}。", wlSaveFail: "匯出失敗：{0}",
       budgetH: "預算可以買多少", budget: "預算（新台幣）", budShares: "可買股數", budCost: "總成本", budLeft: "剩餘金額", budDiv: "預估年股利",
@@ -832,6 +849,28 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
     if (has(/電子通路|建材營造|航運|文化創意|綠能環保/)) return null;   // no standard given for these
     if (has(/半導體|電腦及週邊|光電|電子零組件|資訊服務|其他電子|通信網路|數位雲端|生技|電子工業/)) return "tech";
     return null;
+  }
+
+  // liquidity cushion of one balance sheet: what turns into cash within a year vs what falls due within a year
+  function liqOf(x) {
+    const cl = x.CurrentLiabilities, ca = x.CurrentAssets;
+    if (!(cl > 0) || !(ca > 0)) return null;
+    const quick = x.CashAndCashEquivalents || 0, liquid = quick + (x.CurrentFinancialAssetsAtFairvalueThroughProfitOrLoss || 0)
+      + (x.FinancialAssetsAtFairvalueThroughOtherComprehensiveIncome || 0) + (x.FinancialAssetsAtAmortizedCost || 0);
+    const r = { cr: ca / cl, qr: (ca - (x.Inventories || 0)) / cl, cash: liquid / cl, liquid, cl, ca, inv: x.Inventories || 0 };
+    // each ratio scored against its rule-of-thumb benchmark (current 2, quick 1, cash 0.5), capped at 100
+    r.score = Math.round([r.cr / 2, r.qr / 1, r.cash / 0.5].reduce((a, v) => a + Math.min(1, Math.max(0, v)), 0) / 3 * 100);
+    r.band = r.score >= 80 ? "liqHigh" : r.score >= 50 ? "liqMid" : "liqLow";
+    r.c = r.score >= 80 ? "cool" : r.score >= 50 ? "warm" : "hot";
+    return r;
+  }
+  // liability ratio against the sector standard; c: ok | warm | no
+  function liabOf(code, inds, x) {
+    if (!x || !(x.TotalAssets > 0)) return null;
+    const r = (x.Liabilities || 0) / x.TotalAssets, key = sectorOf(code, inds), S = SECTORS[key], v = r * 100;
+    if (!S) return { r, key: null };
+    const k = v < S.lo ? "secBelow" : v <= S.hi ? "secIn" : v <= S.hi + 10 ? "secAbove" : "secWell";
+    return { r, key, S, k, c: { secBelow: "ok", secIn: "ok", secAbove: "warm", secWell: "no" }[k] };
   }
 
   // financial statements: FinMind gives single-quarter income values; a year counts once all 4 quarters are in
@@ -1213,10 +1252,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
           const bank = /金融/.test(r.industry || "");
           o.ratio = pct(liab / ta);
           o.ratioN = t("finRatioN", amt(liab), amt(ta), eq > 0 ? (liab / eq).toFixed(2) : "–");
-          const key = sectorOf(r.code, r.inds || [r.industry || ""]), S = SECTORS[key], v = liab / ta * 100;
+          const lb = liabOf(r.code, r.inds || [r.industry || ""], B), key = lb.key, S = lb.S, k = lb.k;
           if (S) {
-            const k = v < S.lo ? "secBelow" : v <= S.hi ? "secIn" : v <= S.hi + 10 ? "secAbove" : "secWell";
-            o.sec = { key, ...S, c: { secBelow: "ok", secIn: "ok", secAbove: "warm", secWell: "no" }[k],
+            o.sec = { key, ...S, c: lb.c,
               short: t(k + "S", S.typ), long: t(k, pct(liab / ta), S.typ), watch: watchOf(key, D, B, ibd) };
           } else o.sec = { ind: (r.inds || []).filter(x => x !== "電子工業")[0] || r.industry || "?" };
           if (bank) { o.debt = t("finBankV"); o.debtN = t("finBank"); }
@@ -1235,18 +1273,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 
         // liquidity cushion: what can be turned into cash within a year vs what falls due within a year
         if (B && B.TotalAssets) {
-          const liq = x => {
-            const cl = x.CurrentLiabilities, ca = x.CurrentAssets;
-            if (!(cl > 0) || !(ca > 0)) return null;
-            const quick = x.CashAndCashEquivalents || 0, liquid = quick + (x.CurrentFinancialAssetsAtFairvalueThroughProfitOrLoss || 0)
-              + (x.FinancialAssetsAtFairvalueThroughOtherComprehensiveIncome || 0) + (x.FinancialAssetsAtAmortizedCost || 0);
-            const r = { cr: ca / cl, qr: (ca - (x.Inventories || 0)) / cl, cash: liquid / cl, liquid, cl, ca, inv: x.Inventories || 0 };
-            // each ratio scored against its rule-of-thumb benchmark (current 2, quick 1, cash 0.5), capped at 100
-            r.score = Math.round([r.cr / 2, r.qr / 1, r.cash / 0.5].reduce((a, v) => a + Math.min(1, Math.max(0, v)), 0) / 3 * 100);
-            r.band = r.score >= 80 ? "liqHigh" : r.score >= 50 ? "liqMid" : "liqLow";
-            r.c = r.score >= 80 ? "cool" : r.score >= 50 ? "warm" : "hot";
-            return r;
-          };
+          const liq = liqOf;
           const L = liq(B);
           if (!L) o.liq = { na: true, date: B.date };
           else {
@@ -1279,9 +1306,42 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       const wlSort = ref(store.get("wlSort") === "1");
       on(wlSort, v => store.set("wlSort", v ? "1" : "0"));
       const wlCmp = computed(() => parseFloat(wlBudget.value) > 0);
+      // traffic lights per watched stock: latest balance sheet (1 request, +1 for industry if unknown), cached 7 days
+      let wf0 = {}; try { wf0 = JSON.parse(store.get("wlFin") || "{}"); } catch (e) {}
+      const wlFin = ref(wf0), wlBusy = new Set();
+      on(wlFin, v => store.set("wlFin", JSON.stringify(v)), { deep: true });
+      on([tab, () => watch.value.map(w => w.code).join()], async () => {
+        if (tab.value !== "watch") return;
+        const weekAgo = iso(new Date(Date.now() - 7 * 864e5));
+        for (const w of watch.value) {
+          const f = wlFin.value[w.code];
+          if ((f && f.at >= weekAgo) || wlBusy.has(w.code)) continue;
+          wlBusy.add(w.code);
+          try {
+            const [bs, info] = await Promise.all([fm("TaiwanStockBalanceSheet", w.code, iso(new Date(Date.now() - 200 * 864e5))),
+              w.inds && w.inds.length ? null : fm("TaiwanStockInfo", w.code, "1990-01-01").catch(() => [])]);
+            const inds = info ? [...new Set(info.map(x => x.industry_category).filter(Boolean))] : w.inds;
+            const by = {}; bs.forEach(x => { (by[x.date] = by[x.date] || {})[x.type] = x.value; });
+            const d = Object.keys(by).sort().pop(), x = d && by[d];
+            const lq = x && liqOf(x), lb = x && liabOf(w.code, inds, x);
+            wlFin.value[w.code] = { at: iso(new Date()), date: d || null,
+              liq: lq ? { score: lq.score, c: lq.c, band: lq.band } : null, liab: lb ? { r: lb.r, k: lb.k || null, typ: lb.S ? lb.S.typ : null, c: lb.c || null } : null };
+          } catch (err) { /* rate limit or network: try again next visit */ }
+          finally { wlBusy.delete(w.code); }
+        }
+      }, { immediate: true });
+      const lightOf = f => {
+        if (!f) return { liq: "…", liab: "…", liqC: "lx", liabC: "lx" };
+        const L = f.liq, B = f.liab, o = {};
+        o.liq = L ? String(L.score) : t("na"); o.liqC = L ? { cool: "lg", warm: "ly", hot: "lr" }[L.c] : "lx";
+        o.liqT = L ? t("wlLiqT", L.score, t(L.band), f.date) : t(B ? "liqNa" : "wlNoFin");
+        o.liab = B ? pct(B.r) : t("na"); o.liabC = B && B.c ? { ok: "lg", warm: "ly", no: "lr" }[B.c] : "lx";
+        o.liabT = !B ? t("wlNoFin") : B.k ? t(B.k, pct(B.r), B.typ) + " · " + f.date : t("wlNoStd", f.date);
+        return o;
+      };
       const wlRows = computed(() => {
         const B = parseFloat(wlBudget.value);
-        const rows = watch.value.map(w => {
+        const rows = watch.value.map(w => ({ ...w, f: lightOf(wlFin.value[w.code]) })).map(w => {
           if (!(B > 0)) return { ...w, c: {} };
           const price = w.close, d = w.div ?? (w.yield != null && price ? w.yield * price : null);   // older saved rows have no div
           if (!(price > 0)) return { ...w, c: { sh: "–", cost: "–", div: "–" } };
@@ -1299,7 +1359,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       const removeWatch = code => { watch.value = watch.value.filter(x => x.code !== code); wlMsg.value = null; };
       function addWatch(r) {
         const d = +r.div.toFixed(3);
-        const row = { code: r.code, name: r.name || "", close: r.close, yield: r.close > 0 ? +(d / r.close).toFixed(6) : null, div: d, date: r.date };
+        const row = { code: r.code, name: r.name || "", close: r.close, yield: r.close > 0 ? +(d / r.close).toFixed(6) : null, div: d, date: r.date, inds: r.inds || [] };
         const i = watch.value.findIndex(x => x.code === r.code);
         if (i >= 0) watch.value[i] = { ...watch.value[i], ...row }; else watch.value.unshift(row);
       }
