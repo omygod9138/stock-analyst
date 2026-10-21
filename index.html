@@ -493,17 +493,17 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
     <p class="det-empty" v-else-if="!news || news.code !== R.code || (news.kind === 'loading' && !news.items)">{{ t('newsLoading', R.code) }}</p>
     <p class="det-empty no" v-else-if="news.kind === 'fail' && !news.items">{{ t('newsFail', news.msg) }}</p>
     <div class="det" v-else>
-      <div class="det-head"><span class="det-name">{{ dm.name }}</span><span class="det-sub">{{ t('newsN', newsList.length, news.days, news.from, news.to) }}</span></div>
+      <div class="det-head"><span class="det-name">{{ dm.name }}</span><span class="det-sub">{{ news.src === 'cnyes' ? t('newsNc', news.items.length, news.total) : t('newsN', newsList.length, news.days, news.from, news.to) }}</span></div>
       <div class="news-bar">
         <label v-if="newsForumN"><input type="checkbox" v-model="newsHideForum"> {{ t('newsHideForum', newsForumN) }}</label>
-        <span>{{ t('newsSrc') }}</span>
+        <span>{{ t(news.src === 'cnyes' ? 'newsSrcC' : 'newsSrc') }}</span>
       </div>
-      <p class="det-empty" v-if="!newsList.length">{{ t('newsNone', R.code, news.days) }}</p>
+      <p class="det-empty" v-if="!newsList.length">{{ news.src === 'cnyes' ? t('newsNoneC', R.code) : t('newsNone', R.code, news.days) }}</p>
       <ul class="news">
         <li v-for="x in newsList" :key="x.link"><a :href="x.link" target="_blank" rel="noopener noreferrer">{{ x.title }}</a><span class="meta"><b>{{ x.date.slice(5, 16) }}</b> · {{ x.source }}</span></li>
       </ul>
       <p class="det-empty no" v-if="news.kind === 'fail'">{{ t('newsFail', news.msg) }}</p>
-      <button type="button" class="linkbtn news-more" :disabled="news.kind === 'loading'" @click="moreNews">{{ news.kind === 'loading' ? t('newsLoading', R.code) : t('newsMore', NEWS_DAYS) }}</button>
+      <button type="button" class="linkbtn news-more" v-if="news.src !== 'cnyes' || news.page < news.last" :disabled="news.kind === 'loading'" @click="moreNews">{{ news.kind === 'loading' ? t('newsLoading', R.code) : news.src === 'cnyes' ? t('newsMoreC') : t('newsMore', NEWS_DAYS) }}</button>
     </div>
   </section>
 
@@ -592,7 +592,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       twse: "TWSE", tpex: "TPEx",
       split: "Split", splitTip: "Share basis changed: {0}. Earlier prices and dividends are scaled to today's shares.",
       splitEv: "{0} {1} (×{2})", "面額變更": "par value change", "分割": "split", "反分割": "reverse split",
-      tabWatch: "Watchlist", tabNews: "News", newsEmpty: "Look up a TW stock code above to see its recent news here.", newsLoading: "Loading news for {0}…", newsFail: "Couldn't load news: {0}", newsNone: "No news for {0} in the last {1} days.", newsN: "{0} articles · last {1} days ({2} to {3})", newsHideForum: "Hide forum posts ({0})", newsMore: "Load {0} more days", newsSrc: "News via FinMind · links open the original site", wlExport: "Export JSON", wlImport: "Import JSON", wlEmpty: "Stocks you look up are added here automatically. Click a row to open its details.",
+      tabWatch: "Watchlist", tabNews: "News", newsEmpty: "Look up a TW stock code above to see its recent news here.", newsLoading: "Loading news for {0}…", newsFail: "Couldn't load news: {0}", newsNone: "No news for {0} in the last {1} days.", newsN: "{0} articles · last {1} days ({2} to {3})", newsHideForum: "Hide forum posts ({0})", newsMore: "Load {0} more days", newsSrc: "News via FinMind · links open the original site", newsSrcC: "News from 鉅亨網 (cnyes) · links open the article", newsNc: "{0} of {1} articles", newsNoneC: "鉅亨網 has no news for {0}.", newsMoreC: "Load 30 more", wlExport: "Export JSON", wlImport: "Import JSON", wlEmpty: "Stocks you look up are added here automatically. Click a row to open its details.",
       wlCode: "Code", wlName: "Name", wlPrice: "Price", wlDate: "As of", wlCount: "{0} stock{1} · click a row to open its details", wlRemove: "Remove {0}",
       wlBud: "Compare with a budget (NT$)", wlBudEnter: "Enter a budget to see how many shares, what it costs and the yearly dividend for each stock.",
       wlBudN: "Shares at each stock's saved price incl. 0.1425% fee (min NT$20); dividend = last 12 months per share × shares. #1 pays the most. Refresh a price by clicking its row.",
@@ -703,7 +703,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       twse: "上市", tpex: "上櫃",
       split: "曾分割", splitTip: "股本基礎曾變動：{0}。之前的股價與股利已換算成目前的股數。",
       splitEv: "{0} {1}（×{2}）", "面額變更": "面額變更", "分割": "分割", "反分割": "反分割",
-      tabWatch: "追蹤清單", tabNews: "新聞", newsEmpty: "在上方查詢台股代號，即可在此查看近期新聞。", newsLoading: "正在載入 {0} 的新聞…", newsFail: "無法載入新聞：{0}", newsNone: "{0} 近 {1} 天沒有新聞。", newsN: "{0} 則 · 近 {1} 天（{2} 至 {3}）", newsHideForum: "隱藏論壇貼文（{0}）", newsMore: "再載入 {0} 天", newsSrc: "新聞來源 FinMind · 連結開啟原網站", wlExport: "匯出 JSON", wlImport: "匯入 JSON", wlEmpty: "查詢過的股票會自動加入這裡。點選一列即可查看個股資訊。",
+      tabWatch: "追蹤清單", tabNews: "新聞", newsEmpty: "在上方查詢台股代號，即可在此查看近期新聞。", newsLoading: "正在載入 {0} 的新聞…", newsFail: "無法載入新聞：{0}", newsNone: "{0} 近 {1} 天沒有新聞。", newsN: "{0} 則 · 近 {1} 天（{2} 至 {3}）", newsHideForum: "隱藏論壇貼文（{0}）", newsMore: "再載入 {0} 天", newsSrc: "新聞來源 FinMind · 連結開啟原網站", newsSrcC: "新聞來源 鉅亨網 · 連結開啟原文", newsNc: "{0} / {1} 則", newsNoneC: "鉅亨網沒有 {0} 的新聞。", newsMoreC: "再載入 30 則", wlExport: "匯出 JSON", wlImport: "匯入 JSON", wlEmpty: "查詢過的股票會自動加入這裡。點選一列即可查看個股資訊。",
       wlCode: "代號", wlName: "名稱", wlPrice: "股價", wlDate: "資料日期", wlCount: "共 {0} 檔 · 點選一列查看個股資訊", wlRemove: "移除 {0}",
       wlBud: "以相同預算比較（新台幣）", wlBudEnter: "輸入預算，即可看到每檔可買股數、成本與年股利。",
       wlBudN: "以各檔儲存的股價計算，含 0.1425% 手續費（最低 20 元）；年股利 = 近 12 個月每股股利 × 股數。第 1 名領最多。點選該列可更新股價。",
@@ -938,6 +938,15 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
     const res = await Promise.allSettled(Array.from({ length: n }, (_, i) => fm("TaiwanStockNews", code, twDay(from + i))));
     if (res.every(x => x.status === "rejected")) throw res[0].reason;
     return res.flatMap(x => x.status === "fulfilled" ? x.value : []);
+  }
+  // 鉅亨網 per-stock news through our Cloudflare Worker (worker/cnyes-news.js); empty = FinMind only
+  const NEWS_RELAY = "";
+  const twTime = sec => new Date((sec + 8 * 3600) * 1000).toISOString().slice(0, 16).replace("T", " ");
+  async function cnyesNews(code, page) {
+    const r = await fetch(NEWS_RELAY + "?" + new URLSearchParams({ code, page }));
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.items) throw new Error(j.error || "HTTP " + r.status);
+    return { ...j, items: j.items.map(x => ({ link: "https://news.cnyes.com/news/id/" + x.id, title: x.title, date: twTime(x.at), source: "鉅亨網" + (x.cat ? " · " + x.cat : "") })) };
   }
   const isForum = x => /\/forum\/|ptt\.cc|股市爆料同學會/.test(x.link + x.title);
 
@@ -1214,6 +1223,17 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       async function loadNews(code, more) {
         const prev = more && news.value && news.value.code === code ? news.value : null, start = prev ? prev.days : 0;
         news.value = { ...(prev || {}), code, kind: "loading", days: start };
+        if (NEWS_RELAY && (!prev || prev.src === "cnyes")) {
+          try {
+            const page = prev ? prev.page + 1 : 1, j = await cnyesNews(code, page), seen = new Set(prev ? prev.items.map(x => x.link) : []);
+            const items = [...(prev ? prev.items : []), ...j.items.filter(x => !seen.has(x.link))];
+            if (R.value && R.value.code === code) news.value = { code, kind: "ok", src: "cnyes", items, page: j.page, last: j.last, total: j.total };
+            return;
+          } catch (err) {
+            if (prev) { if (R.value && R.value.code === code) news.value = { ...prev, kind: "fail", msg: err.message }; return; }
+            // relay down: fall through to FinMind
+          }
+        }
         try {
           const rows = await newsDays(code, start, NEWS_DAYS), seen = new Set(), items = [];
           [...(prev ? prev.items : []), ...rows].forEach(x => {
@@ -1221,7 +1241,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
             items.push({ ...x, title: x.title.replace(new RegExp("\\s*-\\s*" + x.source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*$"), "") });
           });
           items.sort((a, b) => b.date.localeCompare(a.date));
-          if (R.value && R.value.code === code) news.value = { code, kind: "ok", items, days: start + NEWS_DAYS, from: twDay(start + NEWS_DAYS - 1), to: twDay(0) };
+          if (R.value && R.value.code === code) news.value = { code, kind: "ok", src: "fm", items, days: start + NEWS_DAYS, from: twDay(start + NEWS_DAYS - 1), to: twDay(0) };
         } catch (err) {
           if (R.value && R.value.code === code) news.value = prev ? { ...prev, kind: "fail", msg: err.message } : { code, kind: "fail", msg: err.message };
         }
