@@ -175,6 +175,17 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .bars-x { display: flex; justify-content: space-between; font: 500 11px var(--f-mono); color: var(--muted); margin-top: 4px; }
 .bar-tip { min-height: 20px; font-size: 13px; color: var(--muted); margin: 6px 0 0; }
 .bar-tip b { font-family: var(--f-mono); color: var(--fg); }
+/* news */
+.news-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.news-bar label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.news-bar input { width: auto; margin: 0; padding: 0; accent-color: var(--accent); }
+.news { list-style: none; margin: 12px 0 0; padding: 0; }
+.news li { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.news a { color: var(--fg); text-decoration: none; font-weight: 500; line-height: 1.45; }
+.news a:hover { color: var(--accent); text-decoration: underline; }
+.news .meta { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+.news .meta b { font: 500 12px var(--f-mono); color: var(--muted); }
+.news-more { margin-top: 12px; }
 /* financials: yearly net income columns, liabilities/equity meter */
 .fbars { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; align-items: end; height: 170px; margin-top: 12px; border-bottom: 1px solid var(--line); }
 .fbar { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; min-width: 0; }
@@ -477,6 +488,25 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
     </div>
   </section>
 
+  <section class="panel" id="pane-news" role="tabpanel" aria-labelledby="tab-news" aria-live="polite" :hidden="tab !== 'news'">
+    <p class="det-empty" v-if="!R">{{ t('newsEmpty') }}</p>
+    <p class="det-empty" v-else-if="!news || news.code !== R.code || (news.kind === 'loading' && !news.items)">{{ t('newsLoading', R.code) }}</p>
+    <p class="det-empty no" v-else-if="news.kind === 'fail' && !news.items">{{ t('newsFail', news.msg) }}</p>
+    <div class="det" v-else>
+      <div class="det-head"><span class="det-name">{{ dm.name }}</span><span class="det-sub">{{ t('newsN', newsList.length, news.days, news.from, news.to) }}</span></div>
+      <div class="news-bar">
+        <label v-if="newsForumN"><input type="checkbox" v-model="newsHideForum"> {{ t('newsHideForum', newsForumN) }}</label>
+        <span>{{ t('newsSrc') }}</span>
+      </div>
+      <p class="det-empty" v-if="!newsList.length">{{ t('newsNone', R.code, news.days) }}</p>
+      <ul class="news">
+        <li v-for="x in newsList" :key="x.link"><a :href="x.link" target="_blank" rel="noopener noreferrer">{{ x.title }}</a><span class="meta"><b>{{ x.date.slice(5, 16) }}</b> · {{ x.source }}</span></li>
+      </ul>
+      <p class="det-empty no" v-if="news.kind === 'fail'">{{ t('newsFail', news.msg) }}</p>
+      <button type="button" class="linkbtn news-more" :disabled="news.kind === 'loading'" @click="moreNews">{{ news.kind === 'loading' ? t('newsLoading', R.code) : t('newsMore', NEWS_DAYS) }}</button>
+    </div>
+  </section>
+
   <section class="panel" id="pane-watch" role="tabpanel" aria-labelledby="tab-watch" :hidden="tab !== 'watch'">
     <div class="wl-bar">
       <p class="wl-count" id="wlCount">{{ watch.length ? t('wlCount', watch.length, plural(watch.length)) : '' }}</p>
@@ -562,7 +592,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       twse: "TWSE", tpex: "TPEx",
       split: "Split", splitTip: "Share basis changed: {0}. Earlier prices and dividends are scaled to today's shares.",
       splitEv: "{0} {1} (×{2})", "面額變更": "par value change", "分割": "split", "反分割": "reverse split",
-      tabWatch: "Watchlist", wlExport: "Export JSON", wlImport: "Import JSON", wlEmpty: "Stocks you look up are added here automatically. Click a row to open its details.",
+      tabWatch: "Watchlist", tabNews: "News", newsEmpty: "Look up a TW stock code above to see its recent news here.", newsLoading: "Loading news for {0}…", newsFail: "Couldn't load news: {0}", newsNone: "No news for {0} in the last {1} days.", newsN: "{0} articles · last {1} days ({2} to {3})", newsHideForum: "Hide forum posts ({0})", newsMore: "Load {0} more days", newsSrc: "News via FinMind · links open the original site", wlExport: "Export JSON", wlImport: "Import JSON", wlEmpty: "Stocks you look up are added here automatically. Click a row to open its details.",
       wlCode: "Code", wlName: "Name", wlPrice: "Price", wlDate: "As of", wlCount: "{0} stock{1} · click a row to open its details", wlRemove: "Remove {0}",
       wlBud: "Compare with a budget (NT$)", wlBudEnter: "Enter a budget to see how many shares, what it costs and the yearly dividend for each stock.",
       wlBudN: "Shares at each stock's saved price incl. 0.1425% fee (min NT$20); dividend = last 12 months per share × shares. #1 pays the most. Refresh a price by clicking its row.",
@@ -673,7 +703,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       twse: "上市", tpex: "上櫃",
       split: "曾分割", splitTip: "股本基礎曾變動：{0}。之前的股價與股利已換算成目前的股數。",
       splitEv: "{0} {1}（×{2}）", "面額變更": "面額變更", "分割": "分割", "反分割": "反分割",
-      tabWatch: "追蹤清單", wlExport: "匯出 JSON", wlImport: "匯入 JSON", wlEmpty: "查詢過的股票會自動加入這裡。點選一列即可查看個股資訊。",
+      tabWatch: "追蹤清單", tabNews: "新聞", newsEmpty: "在上方查詢台股代號，即可在此查看近期新聞。", newsLoading: "正在載入 {0} 的新聞…", newsFail: "無法載入新聞：{0}", newsNone: "{0} 近 {1} 天沒有新聞。", newsN: "{0} 則 · 近 {1} 天（{2} 至 {3}）", newsHideForum: "隱藏論壇貼文（{0}）", newsMore: "再載入 {0} 天", newsSrc: "新聞來源 FinMind · 連結開啟原網站", wlExport: "匯出 JSON", wlImport: "匯入 JSON", wlEmpty: "查詢過的股票會自動加入這裡。點選一列即可查看個股資訊。",
       wlCode: "代號", wlName: "名稱", wlPrice: "股價", wlDate: "資料日期", wlCount: "共 {0} 檔 · 點選一列查看個股資訊", wlRemove: "移除 {0}",
       wlBud: "以相同預算比較（新台幣）", wlBudEnter: "輸入預算，即可看到每檔可買股數、成本與年股利。",
       wlBudN: "以各檔儲存的股價計算，含 0.1425% 手續費（最低 20 元）；年股利 = 近 12 個月每股股利 × 股數。第 1 名領最多。點選該列可更新股價。",
@@ -901,12 +931,22 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
     };
   }
 
+  // news: FinMind only returns one day per request, so fetch each Taipei calendar day in parallel
+  const NEWS_DAYS = 7;
+  const twDay = back => iso(new Date(Date.now() + 8 * 36e5 - back * 864e5));
+  async function newsDays(code, from, n) {
+    const res = await Promise.allSettled(Array.from({ length: n }, (_, i) => fm("TaiwanStockNews", code, twDay(from + i))));
+    if (res.every(x => x.status === "rejected")) throw res[0].reason;
+    return res.flatMap(x => x.status === "fulfilled" ? x.value : []);
+  }
+  const isForum = x => /\/forum\/|ptt\.cc|股市爆料同學會/.test(x.link + x.title);
+
   // budget -> shares at the current price, after TW broker fee (0.1425%, min NT$20)
   const FEE = 0.001425, FEE_MIN = 20;
   const fee = amt => Math.max(FEE_MIN, Math.round(amt * FEE));
   const CODE_RE = /^[0-9A-Z]{4,6}$/;
-  const TABS = ["buyin", "recommended", "detail", "financials", "watch"];
-  const TAB_LABEL = { buyin: "tabBuyin", recommended: "tabRec", detail: "tabDetail", financials: "tabFin", watch: "tabWatch" };
+  const TABS = ["buyin", "recommended", "detail", "financials", "news", "watch"];
+  const TAB_LABEL = { buyin: "tabBuyin", recommended: "tabRec", detail: "tabDetail", financials: "tabFin", news: "tabNews", watch: "tabWatch" };
 
   createApp({
     setup() {
@@ -1167,6 +1207,33 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         catch (err) { next = { code: r.code, kind: "fail", msg: err.message }; }
         if (R.value && R.value.code === r.code) fin.value = next;
       }, { immediate: true });
+      // ---- news: fetched when the tab is opened; "load more" adds older days ----
+      const news = ref(null);   // { code, kind: loading|fail|ok, items, days, from, to, msg }
+      const newsHideForum = ref(store.get("newsForum") !== "0");
+      on(newsHideForum, v => store.set("newsForum", v ? "1" : "0"));
+      async function loadNews(code, more) {
+        const prev = more && news.value && news.value.code === code ? news.value : null, start = prev ? prev.days : 0;
+        news.value = { ...(prev || {}), code, kind: "loading", days: start };
+        try {
+          const rows = await newsDays(code, start, NEWS_DAYS), seen = new Set(), items = [];
+          [...(prev ? prev.items : []), ...rows].forEach(x => {
+            if (seen.has(x.link)) return; seen.add(x.link);
+            items.push({ ...x, title: x.title.replace(new RegExp("\\s*-\\s*" + x.source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*$"), "") });
+          });
+          items.sort((a, b) => b.date.localeCompare(a.date));
+          if (R.value && R.value.code === code) news.value = { code, kind: "ok", items, days: start + NEWS_DAYS, from: twDay(start + NEWS_DAYS - 1), to: twDay(0) };
+        } catch (err) {
+          if (R.value && R.value.code === code) news.value = prev ? { ...prev, kind: "fail", msg: err.message } : { code, kind: "fail", msg: err.message };
+        }
+      }
+      on([tab, R], () => {
+        const r = R.value;
+        if (tab.value !== "news" || !r || (news.value && news.value.code === r.code && news.value.kind !== "fail")) return;
+        loadNews(r.code, false);
+      }, { immediate: true });
+      const moreNews = () => R.value && loadNews(R.value.code, true);
+      const newsForumN = computed(() => news.value && news.value.items ? news.value.items.filter(isForum).length : 0);
+      const newsList = computed(() => !news.value || !news.value.items ? [] : newsHideForum.value ? news.value.items.filter(x => !isForum(x)) : news.value.items);
       // the sector's "what to watch" metrics, from the statements FinMind has (TTM = last 4 quarters)
       function watchOf(key, D, B, ibd) {
         const amt = v => compact(v), out = [];
@@ -1447,7 +1514,8 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         f1, buyErr, bo, f2, recErr, ro, copyBuyin,
         q, loading, tick, tickParts, go,
         R, dm, splitOpen, tipY, tipParts, tgt, stepTgt, setBars, dense, budget, bud, budMode, budgetIn, divIn,
-        watch, wlMsg, removeWatch, wlBudget, wlSort, wlCmp, wlRows, exportWatch, importWatch, openWatch, fo
+        watch, wlMsg, removeWatch, wlBudget, wlSort, wlCmp, wlRows, exportWatch, importWatch, openWatch, fo,
+        news, newsList, newsForumN, newsHideForum, moreNews, NEWS_DAYS
       };
     }
   }).mount("#app");
