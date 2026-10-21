@@ -363,6 +363,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         <div class="y"><span class="lbl">{{ t('divYield') }}</span><span class="v" id="dYld">{{ dm.yld }}</span><span class="note" id="dYldN">{{ dm.yldN }}</span></div>
         <div class="y"><span class="lbl">{{ t('pe') }}</span><span class="v" id="dPe">{{ dm.pe }}</span><span class="note" id="dPeN">{{ dm.peN }}</span></div>
         <div class="y"><span class="lbl">{{ t('avgAnn') }}</span><span class="v" id="dAvg">{{ dm.avg }}</span><span class="note" id="dAvgN">{{ dm.avgN }}</span></div>
+        <div class="y"><span class="lbl">{{ t('avgYld') }}</span><span class="v" id="dAvgY">{{ dm.avgY }}</span><span class="note" id="dAvgYN">{{ dm.avgYN }}</span></div>
       </div>
       <div>
         <h2>{{ t('budgetH') }}</h2>
@@ -549,7 +550,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       nowBelow: "✓ now {0} below it", nowAbove: "✗ now {0} ({1}) above", noDiv12: "No dividend in the last 12 months", na: "n/a",
       yldN: "{0} cash in the last 12 months ({1} payout{2}) ÷ price",
       pe: "P/E ratio", peNone: "Not published for this code (ETFs have none).", peOk: "Price ÷ last 4 quarters' EPS", peNeg: "Last 4 quarters' EPS is negative",
-      avgAnn: "Avg annual dividend", avgAnnN: "Last 5 full years ({0}–{1}); all {2} paying years: {3}",
+      avgAnn: "Avg annual dividend", avgYld: "Avg dividend yield", avgYldN: "{0} avg dividend {1} ÷ price {2}. Average of each year's yield on that year's average close: {3}", avgYldN0: "{0} avg dividend {1} ÷ price {2}.", avgAnnN: "Last 5 full years ({0}–{1}); all {2} paying years: {3}",
       range: "All-time price range", low: "low", high: "high", now: "now ",
       rangeN: "Daily high/low since {0}, not adjusted for dividends. ", rangeAdj: "Prices and dividends before {0} are scaled for par value changes / splits. ",
       rangeNow: "Now {0} below the high, {1} above the low.",
@@ -660,7 +661,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       nowBelow: "✓ 目前低於此價 {0}", nowAbove: "✗ 目前高於此價 {0}（{1}）", noDiv12: "近 12 個月沒有配息", na: "無",
       yldN: "近 12 個月現金股利 {0}（配 {1} 次）÷ 股價",
       pe: "本益比", peNone: "此代號沒有公布本益比（ETF 沒有）。", peOk: "股價 ÷ 近 4 季 EPS", peNeg: "近 4 季 EPS 為負",
-      avgAnn: "平均年股利", avgAnnN: "近 5 個完整年度（{0}–{1}）；全部 {2} 個配息年度：{3}",
+      avgAnn: "平均年股利", avgYld: "平均殖利率", avgYldN: "{0} 平均股利 {1} ÷ 股價 {2}。各年股利 ÷ 當年平均收盤價的平均：{3}", avgYldN0: "{0} 平均股利 {1} ÷ 股價 {2}。", avgAnnN: "近 5 個完整年度（{0}–{1}）；全部 {2} 個配息年度：{3}",
       range: "歷史價格區間", low: "最低", high: "最高", now: "目前 ",
       rangeN: "自 {0} 起的每日最高 / 最低價，未做除息調整。", rangeAdj: "{0} 之前的股價與股利已依面額變更 / 分割調整。",
       rangeNow: "目前比最高價低 {0}，比最低價高 {1}。",
@@ -1044,7 +1045,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         const years = Object.keys(byYear).map(Number).sort((a, b) => a - b);
         o.bars = [];
         if (!years.length) {
-          o.yrs = o.avg = t("none"); o.yrsN = t("noDivData"); o.avgN = o.x0 = o.x1 = o.barsAria = "";
+          o.yrs = o.avg = o.avgY = t("none"); o.yrsN = t("noDivData"); o.avgN = o.avgYN = o.x0 = o.x1 = o.barsAria = "";
         } else {
           const first = years[0], span = thisYear - first + 1, missed = [];
           for (let y = first; y < thisYear; y++) if (!byYear[y]) missed.push(y);
@@ -1055,6 +1056,14 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
           const last5 = []; for (let y = thisYear - 5; y < thisYear; y++) last5.push(y);
           o.avg = money(+(last5.reduce((a, y) => a + (byYear[y] || 0), 0) / 5).toFixed(3));
           o.avgN = t("avgAnnN", last5[0], last5[4], full.length, money(+avg(full).toFixed(3)));
+          // average yield: 5-year average dividend on today's price, plus the mean of each year's yield on that year's average close
+          // only years since the first payout count, so a young ETF isn't diluted by years before it existed
+          const ys = last5.filter(y => y >= first), a5 = ys.length ? ys.reduce((a, y) => a + (byYear[y] || 0), 0) / ys.length : 0;
+          const yRange = ys.length ? (ys.length > 1 ? ys[0] + "–" + ys[ys.length - 1] : String(ys[0])) : "";
+          o.avgY = a5 && r.close ? pct(a5 / r.close) : t("na");
+          const yy = ys.filter(y => r.avgClose[y]).map(y => (byYear[y] || 0) / r.avgClose[y]);
+          o.avgYN = !ys.length ? t("noDiv12") : yy.length ? t("avgYldN", yRange, money(+a5.toFixed(3)), money(r.close), pct(yy.reduce((a, b) => a + b, 0) / yy.length))
+            : t("avgYldN0", yRange, money(+a5.toFixed(3)), money(r.close));
 
           // bar chart, one bar per calendar year from first payout to now; label = yield on that year's average close
           const all = []; for (let y = first; y <= thisYear; y++) all.push(y);
