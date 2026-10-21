@@ -940,7 +940,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
     return res.flatMap(x => x.status === "fulfilled" ? x.value : []);
   }
   // 鉅亨網 per-stock news through our Cloudflare Worker (worker/cnyes-news.js); empty = FinMind only
-  const NEWS_RELAY = "";
+  const NEWS_RELAY = "https://patient-wildflower-1ffe.hamlet9138.workers.dev/";
   const twTime = sec => new Date((sec + 8 * 3600) * 1000).toISOString().slice(0, 16).replace("T", " ");
   async function cnyesNews(code, page) {
     const r = await fetch(NEWS_RELAY + "?" + new URLSearchParams({ code, page }));
