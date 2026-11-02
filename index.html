@@ -375,6 +375,8 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         <div class="y"><span class="lbl">{{ t('pe') }}</span><span class="v" id="dPe">{{ dm.pe }}</span><span class="note" id="dPeN">{{ dm.peN }}</span></div>
         <div class="y"><span class="lbl">{{ t('avgAnn') }}</span><span class="v" id="dAvg">{{ dm.avg }}</span><span class="note" id="dAvgN">{{ dm.avgN }}</span></div>
         <div class="y"><span class="lbl">{{ t('avgYld') }}</span><span class="v" id="dAvgY">{{ dm.avgY }}</span><span class="note" id="dAvgYN">{{ dm.avgYN }}</span></div>
+        <div class="y"><span class="lbl">{{ t('prDiv') }}</span><span class="v" id="dPr">{{ pr.v }}</span><span class="d" v-if="pr.d" :class="pr.c">{{ pr.d }}</span><span class="note" id="dPrN">{{ pr.n }}</span></div>
+        <div class="y"><span class="lbl">{{ t('prFcf') }}</span><span class="v" id="dFcf">{{ pr.fv }}</span><span class="d" v-if="pr.fd" :class="pr.fc">{{ pr.fd }}</span><span class="note" id="dFcfN">{{ pr.fn }}</span></div>
       </div>
       <div>
         <h2>{{ t('budgetH') }}</h2>
@@ -580,7 +582,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       nowBelow: "✓ now {0} below it", nowAbove: "✗ now {0} ({1}) above", noDiv12: "No dividend in the last 12 months", na: "n/a",
       yldN: "{0} cash in the last 12 months ({1} payout{2}) ÷ price",
       pe: "P/E ratio", peNone: "Not published for this code (ETFs have none).", peOk: "Price ÷ last 4 quarters' EPS", peNeg: "Last 4 quarters' EPS is negative",
-      avgAnn: "Avg annual dividend", avgYld: "Avg dividend yield", avgYldN: "{0} avg dividend {1} ÷ price {2}. Average of each year's yield on that year's average close: {3}", avgYldN0: "{0} avg dividend {1} ÷ price {2}.", avgAnnN: "Last 5 full years ({0}–{1}); all {2} paying years: {3}",
+      avgAnn: "Avg annual dividend", prDiv: "Predicted dividend", prFcf: "Free cash flow cover", prLoad: "Loading earnings…", prFail: "Couldn't load earnings: {0}", prEtf: "No EPS for ETFs and funds.", prNoPay: "No payout history to base a ratio on.", prLoss: "Last 4 quarters' EPS is {0} (a loss), so no prediction.", prYld: "{0} yield at today's price", prN: "Last 4 quarters' EPS {0} × payout ratio {1}. Payout = dividends paid ÷ prior year's EPS ({2}). An estimate; the board decides.", prFcfV: "{0} of FCF", prFcfN: "{0} FCF per share {1} (operating cash flow {2} − capex {3}). Above 100%, the dividend isn't covered by cash.", prFcfNone: "No cash flow data.", prFcfBank: "Not meaningful for banks and insurers: their operating cash flow swings with deposits and loans.", prFcfNeg: "{0} free cash flow was negative ({1}), so the dividend would be paid from cash or debt.", avgYld: "Avg dividend yield", avgYldN: "{0} avg dividend {1} ÷ price {2}. Average of each year's yield on that year's average close: {3}", avgYldN0: "{0} avg dividend {1} ÷ price {2}.", avgAnnN: "Last 5 full years ({0}–{1}); all {2} paying years: {3}",
       range: "All-time price range", low: "low", high: "high", now: "now ",
       rangeN: "Daily high/low since {0}, not adjusted for dividends. ", rangeAdj: "Prices and dividends before {0} are scaled for par value changes / splits. ",
       rangeNow: "Now {0} below the high, {1} above the low.",
@@ -691,7 +693,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       nowBelow: "✓ 目前低於此價 {0}", nowAbove: "✗ 目前高於此價 {0}（{1}）", noDiv12: "近 12 個月沒有配息", na: "無",
       yldN: "近 12 個月現金股利 {0}（配 {1} 次）÷ 股價",
       pe: "本益比", peNone: "此代號沒有公布本益比（ETF 沒有）。", peOk: "股價 ÷ 近 4 季 EPS", peNeg: "近 4 季 EPS 為負",
-      avgAnn: "平均年股利", avgYld: "平均殖利率", avgYldN: "{0} 平均股利 {1} ÷ 股價 {2}。各年股利 ÷ 當年平均收盤價的平均：{3}", avgYldN0: "{0} 平均股利 {1} ÷ 股價 {2}。", avgAnnN: "近 5 個完整年度（{0}–{1}）；全部 {2} 個配息年度：{3}",
+      avgAnn: "平均年股利", prDiv: "預估股利", prFcf: "自由現金流覆蓋", prLoad: "正在載入獲利資料…", prFail: "無法載入獲利資料：{0}", prEtf: "ETF 與基金沒有 EPS。", prNoPay: "沒有足夠的配息紀錄可計算配發率。", prLoss: "近 4 季 EPS 為 {0}（虧損），無法預估。", prYld: "以目前股價計算殖利率 {0}", prN: "近 4 季 EPS {0} × 配發率 {1}。配發率 = 當年配息 ÷ 前一年 EPS（{2}）。僅供估算，實際由董事會決定。", prFcfV: "占 FCF {0}", prFcfN: "{0} 每股自由現金流 {1}（營業現金流 {2} − 資本支出 {3}）。超過 100% 代表股利沒有現金支撐。", prFcfNone: "沒有現金流量資料。", prFcfBank: "不適用於銀行與保險：營業現金流隨存放款大幅波動。", prFcfNeg: "{0} 自由現金流為負（{1}），股利需動用現金或借款支付。", avgYld: "平均殖利率", avgYldN: "{0} 平均股利 {1} ÷ 股價 {2}。各年股利 ÷ 當年平均收盤價的平均：{3}", avgYldN0: "{0} 平均股利 {1} ÷ 股價 {2}。", avgAnnN: "近 5 個完整年度（{0}–{1}）；全部 {2} 個配息年度：{3}",
       range: "歷史價格區間", low: "最低", high: "最高", now: "目前 ",
       rangeN: "自 {0} 起的每日最高 / 最低價，未做除息調整。", rangeAdj: "{0} 之前的股價與股利已依面額變更 / 分割調整。",
       rangeNow: "目前比最高價低 {0}，比最低價高 {1}。",
@@ -1209,7 +1211,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       const fin = ref(null);   // { code, kind: loading|fail|ok, data | msg }
       on([tab, R], async () => {
         const r = R.value;
-        if (tab.value !== "financials" || !r || (fin.value && fin.value.code === r.code && fin.value.kind !== "fail")) return;
+        if ((tab.value !== "financials" && tab.value !== "detail") || !r || (fin.value && fin.value.code === r.code && fin.value.kind !== "fail")) return;
         fin.value = { code: r.code, kind: "loading" };
         let next;
         try { next = { code: r.code, kind: "ok", data: await finLookup(r.code) }; }
@@ -1320,6 +1322,49 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         return out;
       }
 
+      // ---- predicted dividend: TTM EPS × historical payout ratio (TW pays year Y's dividend from year Y-1's EPS) ----
+      const pr = computed(() => {
+        const r = R.value, f = fin.value, none = { v: "–", n: "" };
+        if (!r) return none;
+        if (!f || f.code !== r.code || f.kind === "loading") return { v: "…", n: t("prLoad"), fv: "…", fn: "" };
+        if (f.kind === "fail") return { v: t("na"), n: t("prFail", f.msg), fv: t("na"), fn: "" };
+        const D = f.data, thisYear = new Date().getFullYear();
+        // EPS is per share at the time; scale to today's share like prices and dividends (par changes, splits)
+        const adj = d => (r.pars || []).reduce((k, p) => d < p.date ? k * p.k : k, 1);
+        const epsQ = d => (D.q[d].EPS || 0) * adj(d);
+        if (!D.dates.length || D.dates.every(d => D.q[d].EPS == null)) return { v: t("na"), n: t("prEtf"), fv: t("na"), fn: t("prFcfNone") };
+        const epsY = {};
+        D.years.filter(a => a.n === 4).forEach(a => { epsY[a.y] = D.dates.filter(d => +d.slice(0, 4) === a.y).reduce((s, d) => s + epsQ(d), 0); });
+        const divY = {}; r.pays.forEach(x => { const y = +x.ex.slice(0, 4); divY[y] = (divY[y] || 0) + x.cash; });
+        // completed pay years whose prior-year EPS is known and positive; last 3
+        const ys = Object.keys(epsY).map(Number).filter(y => y + 1 < thisYear && epsY[y] > 0).slice(-3);
+        const ttm = D.ttm ? D.dates.slice(-4).reduce((s, d) => s + epsQ(d), 0) : null;
+        const o = {};
+        if (ttm == null) Object.assign(o, { v: t("na"), n: t("prEtf") });
+        else if (ttm <= 0) Object.assign(o, { v: t("na"), n: t("prLoss", money(+ttm.toFixed(2))) });
+        else if (!ys.length) Object.assign(o, { v: t("na"), n: t("prNoPay") });
+        else {
+          const ratio = ys.reduce((s, y) => s + (divY[y + 1] || 0), 0) / ys.reduce((s, y) => s + epsY[y], 0), dps = ttm * ratio;
+          o.dps = dps; o.v = money(+dps.toFixed(2)); o.d = t("prYld", pct(dps / r.close)); o.c = "";
+          o.n = t("prN", money(+ttm.toFixed(2)), pct(ratio), ys.map(y => (y + 1) + " " + pct((divY[y + 1] || 0) / epsY[y])).join(t("listSep")));
+        }
+        // FCF cover for the last full year: FCF per share = FCF ÷ (net income ÷ EPS)
+        // (shares = net income ÷ EPS, so either may be a loss as long as both agree in sign; banks' cash flow isn't comparable)
+        const fy = [...D.years].reverse().find(a => a.n === 4 && D.cf[a.y + "-12-31"]), cf = fy && D.cf[fy.y + "-12-31"];
+        if (sectorOf(r.code, r.inds || []) === "fin") Object.assign(o, { fv: t("na"), fn: t("prFcfBank") });
+        else if (!cf || cf.CashFlowsFromOperatingActivities == null || !(fy.ni / epsY[fy.y] > 0)) Object.assign(o, { fv: t("na"), fn: t("prFcfNone") });
+        else {
+          const ocf = cf.CashFlowsFromOperatingActivities, capex = cf.PropertyAndPlantAndEquipment || 0, fcf = ocf + capex;
+          const sh = fy.ni / epsY[fy.y], fps = fcf / sh;
+          if (fcf <= 0) Object.assign(o, { fv: t("na"), fd: "✗", fc: "no", fn: t("prFcfNeg", fy.y, compact(fcf)) });
+          else {
+            const dps = o.dps != null ? o.dps : divY[fy.y + 1] || 0, cov = dps / fps;
+            Object.assign(o, { fv: money(+fps.toFixed(2)), fd: dps ? t("prFcfV", pct(cov)) : "", fc: cov > 1 ? "no" : cov > 0.8 ? "warm" : "ok",
+              fn: t("prFcfN", fy.y, money(+fps.toFixed(2)), compact(ocf), compact(-capex)) });
+          }
+        }
+        return o;
+      });
       const fo = computed(() => {
         const f = fin.value, r = R.value;
         if (!f || !r || f.code !== r.code) return null;
@@ -1534,7 +1579,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         f1, buyErr, bo, f2, recErr, ro, copyBuyin,
         q, loading, tick, tickParts, go,
         R, dm, splitOpen, tipY, tipParts, tgt, stepTgt, setBars, dense, budget, bud, budMode, budgetIn, divIn,
-        watch, wlMsg, removeWatch, wlBudget, wlSort, wlCmp, wlRows, exportWatch, importWatch, openWatch, fo,
+        watch, wlMsg, removeWatch, wlBudget, wlSort, wlCmp, wlRows, exportWatch, importWatch, openWatch, fo, pr,
         news, newsList, newsForumN, newsHideForum, moreNews, NEWS_DAYS
       };
     }
