@@ -451,7 +451,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
                   <td>T{{ x.i }}</td>
                   <td>{{ x.p }}<small>{{ x.pN }}</small></td>
                   <td :class="x.over ? 'no' : x.hit ? 'ok' : 'flat'">{{ x.st }}</td>
-                  <td>{{ x.sh }}</td>
+                  <td>{{ x.sh }}<small>{{ x.shN }}</small></td>
                   <td>{{ x.cost }}</td>
                   <td>{{ x.avg }}</td>
                   <td>{{ x.yoc }}</td>
@@ -688,9 +688,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       trNeedBud: "Enter a budget above to split it into tranches.", trNeedDiv: "Target-yield triggers need a dividend from the last 12 months.",
       trHit: "✓ buy now", trWait: "↓ {0} to go", trVsNow: "{0} vs now", trYAt: "{0} yield",
       trAvgN: "{0} shares · {1} spent incl. fees", trYocN: "{0} a year in dividends", trHitN: "{0} of {1} tranches", trHitNote: "{0} to put in now",
-      trZero: "budget too small", trBud: "Available budget (NT$)", trTgt: "Target total shares", trTgtPh: "optional",
+      trZero: "budget too small", trLots: "{0} lot{1}", trBud: "Available budget (NT$)", trTgt: "Target total shares", trTgtPh: "optional",
       trAtTgt: "You already hold {0} shares, at or above your {1} target.", trOver: "over budget", trShort: "Budget short by", trLeft: "Budget left",
-      trTotal: "Total needed", trShortN: "Plan costs {0} vs budget {1}", trLeftN: "Plan costs {0} of {1}", trNoBud: "Plan costs {0} incl. fees; add a budget to check it", trNote: "With a target, the shares still needed (target − held) are split across tranches; otherwise each tranche gets its share of the budget. Each buys whole shares at its trigger price (fee 0.1425%, min NT$20). Avg cost excludes fees, same as the Buy-in tab. Yield uses the last 12 months' dividend.",
+      trTotal: "Total needed", trShortN: "Plan costs {0} vs budget {1}", trLeftN: "Plan costs {0} of {1}", trNoBud: "Plan costs {0} incl. fees; add a budget to check it", trNote: "With a target, the shares still needed (target − held) are split across tranches; otherwise each tranche gets its share of the budget. Each buys whole lots (1 lot = 1,000 shares; target rounds up to a full lot) at its trigger price (fee 0.1425%, min NT$20). Avg cost excludes fees, same as the Buy-in tab. Yield uses the last 12 months' dividend.",
       budgetH: "What your budget buys", budget: "Budget (NT$)", budShares: "Shares you can buy", budCost: "Total cost", budLeft: "Left over", budDiv: "Expected annual dividend",
       budLots: "{0} lot{1} + {2} odd shares", budLotsOnly: "{0} lot{1} (1 lot = 1,000 shares)", budOdd: "{0} odd shares (under 1 lot)",
       budCostN: "Shares {0} + fee {1} (0.1425%, min NT$20)", budLeftN: "{0} of your budget", budDivN: "Last 12 months' dividend × shares · {0} yield on cost",
@@ -809,9 +809,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       trNeedBud: "請在上方輸入預算，才能分批。", trNeedDiv: "目標殖利率模式需要近 12 個月的股利。",
       trHit: "✓ 可買進", trWait: "↓ 還差 {0}", trVsNow: "比現價 {0}", trYAt: "殖利率 {0}",
       trAvgN: "{0} 股 · 含手續費共 {1}", trYocN: "每年股利 {0}", trHitN: "{0} / {1} 批", trHitNote: "現在可投入 {0}",
-      trZero: "預算不足", trBud: "可用預算（新台幣）", trTgt: "目標總股數", trTgtPh: "選填",
+      trZero: "預算不足", trLots: "{0} 張", trBud: "可用預算（新台幣）", trTgt: "目標總股數", trTgtPh: "選填",
       trAtTgt: "目前持股 {0} 股，已達目標 {1} 股。", trOver: "超出預算", trShort: "預算不足", trLeft: "預算剩餘",
-      trTotal: "所需總金額", trShortN: "計畫需 {0}，預算 {1}", trLeftN: "計畫需 {0}／預算 {1}", trNoBud: "計畫含手續費需 {0}；輸入預算可檢查是否足夠", trNote: "有目標股數時，把還需要的股數（目標 − 持股）分到各批；沒有則每批分到對應比例的預算。以觸發價買整股（手續費 0.1425%，最低 20 元）。均價不含手續費，與「加碼試算」相同。殖利率以近 12 個月股利計算。",
+      trTotal: "所需總金額", trShortN: "計畫需 {0}，預算 {1}", trLeftN: "計畫需 {0}／預算 {1}", trNoBud: "計畫含手續費需 {0}；輸入預算可檢查是否足夠", trNote: "有目標股數時，把還需要的股數（目標 − 持股）分到各批；沒有則每批分到對應比例的預算。以觸發價買整張（1 張 = 1,000 股，目標股數無條件進位到整張）（手續費 0.1425%，最低 20 元）。均價不含手續費，與「加碼試算」相同。殖利率以近 12 個月股利計算。",
       budgetH: "預算可以買多少", budget: "預算（新台幣）", budShares: "可買股數", budCost: "總成本", budLeft: "剩餘金額", budDiv: "預估年股利",
       budLots: "{0} 張 + {2} 股零股", budLotsOnly: "{0} 張（1 張 = 1,000 股）", budOdd: "{0} 股零股（不到 1 張）",
       budCostN: "股款 {0} + 手續費 {1}（0.1425%，最低 20 元）", budLeftN: "預算的 {0}", budDivN: "近 12 個月股利 × 股數 · 成本殖利率 {0}",
@@ -1052,6 +1052,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 
   // budget -> shares at the current price, after TW broker fee (0.1425%, min NT$20)
   const FEE = 0.001425, FEE_MIN = 20;
+  const LOT = 1000;
   const fee = amt => Math.max(FEE_MIN, Math.round(amt * FEE));
   const CODE_RE = /^[0-9A-Z]{4,6}$/;
   const TABS = ["buyin", "recommended", "detail", "financials", "news", "watch"];
@@ -1320,17 +1321,26 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
         const need = byShares ? T - s0 : 0;
         if (byShares && need <= 0) return { msg: t("trAtTgt", num(s0), num(T)) };
         const n = tr.n, w = Array.from({ length: n }, (_, i) => tr.w === "pyr" ? i + 1 : 1), wSum = w.reduce((a, b) => a + b, 0);
-        let S = s0, C = s0 * a0, spent = 0, hitN = 0, hitAmt = 0, given = 0;
+        let S = s0, C = s0 * a0, spent = 0, hitN = 0, hitAmt = 0;
+        // target: lots still needed (rounded up so the target is reached), split by weight with largest remainders
+        const lotPlan = [];
+        if (byShares) {
+          const L = Math.ceil(need / LOT), raw = w.map(wi => L * wi / wSum);
+          raw.forEach((x, i) => { lotPlan[i] = Math.floor(x); });
+          let left = L - lotPlan.reduce((a, b) => a + b, 0);
+          raw.map((x, i) => ({ i, f: x - Math.floor(x) })).sort((a, b) => b.f - a.f || b.i - a.i).forEach(x => { if (left > 0) { lotPlan[x.i]++; left--; } });
+        }
         const rows = w.map((wi, i) => {
           const P = tr.mode === "drop" ? price * (1 - tr.ds * i / 100) : d / ((tr.y0 + tr.ys * i) / 100);
           let sh;
+          // whole board lots only (1 lot = 1000 shares)
           if (byShares) {
-            // split the shares still needed by weight; the last tranche takes the rounding remainder
-            sh = i === n - 1 ? need - given : Math.floor(need * wi / wSum); given += sh;
+            sh = lotPlan[i] * LOT;
           } else {
             const amt = B * wi / wSum;
-            sh = P > 0 ? Math.floor(amt / (P * (1 + FEE))) : 0;
-            while (sh > 0 && sh * P + fee(sh * P) > amt) sh--;
+            let l = P > 0 ? Math.floor(amt / (P * LOT * (1 + FEE))) : 0;
+            while (l > 0 && l * LOT * P + fee(l * LOT * P) > amt) l--;
+            sh = l * LOT;
           }
           const cost = sh ? sh * P + fee(sh * P) : 0;
           S += sh; C += sh * P; spent += cost;
@@ -1341,7 +1351,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
           return {
             i: i + 1, P, hit, p: money(+P.toFixed(2)),
             pN: tr.mode === "drop" ? t("trVsNow", (vs > 0 ? "+" : "") + pct(vs)) : t("trYAt", pct(d / P)) + " · " + t("trVsNow", (vs > 0 ? "+" : "") + pct(vs)),
-            sh: sh ? num(sh) : t("trZero"), cost: sh ? compact(cost) : "–",
+            sh: sh ? t("trLots", num(sh / LOT), plural(sh / LOT)) : t("trZero"), shN: sh ? num(sh) : "", cost: sh ? compact(cost) : "–",
             avg: avg ? money(+avg.toFixed(2)) : "–", yoc: d && avg ? pct(d / avg) : "–",
             over, st: (over ? t("trOver") + " · " : "") + (hit ? t("trHit") : t("trWait", pct((price - P) / price)))
           };
