@@ -163,6 +163,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .tr-t td small { display: block; font-size: 11px; color: var(--muted); }
 .tr-t tr.hit td:first-child { color: var(--down); font-weight: 600; }
 .tr-sum { margin-top: 12px; }
+.tr-sum .y.short { border-color: var(--up); }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
 .kpis .y { align-content: start; }
 .kpis .y .v { font-size: 24px; }
@@ -430,6 +431,8 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
             <div class="y"><span class="lbl">{{ t('trYs') }}</span>
               <span class="step"><button type="button" :aria-label="t('trYs') + ' −'" :disabled="tr.ys <= 0.25" @click="tr.ys = +(tr.ys - 0.25).toFixed(2)">−</button><span id="trYsV">{{ tr.ys.toFixed(2) }}%</span><button type="button" :aria-label="t('trYs') + ' +'" @click="tr.ys = +(tr.ys + 0.25).toFixed(2)">+</button></span></div>
           </template>
+          <label for="trB"><span>{{ t('trBud') }}</span><input id="trB" type="number" inputmode="decimal" min="0" step="any" :placeholder="bud.B ? String(bud.B) : '300000'" v-model="tr.b"></label>
+          <label for="trT"><span>{{ t('trTgt') }}</span><input id="trT" type="number" inputmode="decimal" min="0" step="1" :placeholder="t('trTgtPh')" v-model="tr.t"></label>
           <label for="trS"><span>{{ t('trHoldS') }}</span><input id="trS" type="number" inputmode="decimal" min="0" step="any" placeholder="0" v-model="tr.s"></label>
           <label for="trA"><span>{{ t('trHoldA') }}</span><input id="trA" type="number" inputmode="decimal" min="0" step="any" placeholder="0" v-model="tr.a"></label>
         </div>
@@ -447,7 +450,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
                 <tr v-for="x in tp.rows" :key="x.i" :class="{ hit: x.hit }">
                   <td>T{{ x.i }}</td>
                   <td>{{ x.p }}<small>{{ x.pN }}</small></td>
-                  <td :class="x.hit ? 'ok' : 'flat'">{{ x.st }}</td>
+                  <td :class="x.over ? 'no' : x.hit ? 'ok' : 'flat'">{{ x.st }}</td>
                   <td>{{ x.sh }}</td>
                   <td>{{ x.cost }}</td>
                   <td>{{ x.avg }}</td>
@@ -459,6 +462,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
           <div class="kpis bud-out tr-sum">
             <div class="y main"><span class="lbl">{{ t('trFinAvg') }}</span><span class="v" id="trFinAvg">{{ tp.avg }}</span><span class="note">{{ tp.avgN }}</span></div>
             <div class="y main"><span class="lbl">{{ t('trFinYoc') }}</span><span class="v" id="trFinYoc">{{ tp.yoc }}</span><span class="note">{{ tp.yocN }}</span></div>
+            <div class="y" :class="{ short: tp.short }"><span class="lbl">{{ t(tp.short ? 'trShort' : tp.noBud ? 'trTotal' : 'trLeft') }}</span><span class="v" id="trLeft" :class="{ no: tp.short }">{{ tp.left }}</span><span class="note">{{ tp.leftN }}</span></div>
             <div class="y"><span class="lbl">{{ t('trHitNow') }}</span><span class="v" id="trHit">{{ tp.hitN }}</span><span class="note">{{ tp.hitNote }}</span></div>
           </div>
           <p class="hint">{{ t('trNote') }}</p>
@@ -684,7 +688,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       trNeedBud: "Enter a budget above to split it into tranches.", trNeedDiv: "Target-yield triggers need a dividend from the last 12 months.",
       trHit: "✓ buy now", trWait: "↓ {0} to go", trVsNow: "{0} vs now", trYAt: "{0} yield",
       trAvgN: "{0} shares · {1} spent incl. fees", trYocN: "{0} a year in dividends", trHitN: "{0} of {1} tranches", trHitNote: "{0} to put in now",
-      trZero: "budget too small", trNote: "Each tranche gets its share of the budget and buys whole shares at its trigger price (fee 0.1425%, min NT$20). Avg cost excludes fees, same as the Buy-in tab. Yield uses the last 12 months' dividend.",
+      trZero: "budget too small", trBud: "Available budget (NT$)", trTgt: "Target total shares", trTgtPh: "optional",
+      trAtTgt: "You already hold {0} shares, at or above your {1} target.", trOver: "over budget", trShort: "Budget short by", trLeft: "Budget left",
+      trTotal: "Total needed", trShortN: "Plan costs {0} vs budget {1}", trLeftN: "Plan costs {0} of {1}", trNoBud: "Plan costs {0} incl. fees; add a budget to check it", trNote: "With a target, the shares still needed (target − held) are split across tranches; otherwise each tranche gets its share of the budget. Each buys whole shares at its trigger price (fee 0.1425%, min NT$20). Avg cost excludes fees, same as the Buy-in tab. Yield uses the last 12 months' dividend.",
       budgetH: "What your budget buys", budget: "Budget (NT$)", budShares: "Shares you can buy", budCost: "Total cost", budLeft: "Left over", budDiv: "Expected annual dividend",
       budLots: "{0} lot{1} + {2} odd shares", budLotsOnly: "{0} lot{1} (1 lot = 1,000 shares)", budOdd: "{0} odd shares (under 1 lot)",
       budCostN: "Shares {0} + fee {1} (0.1425%, min NT$20)", budLeftN: "{0} of your budget", budDivN: "Last 12 months' dividend × shares · {0} yield on cost",
@@ -803,7 +809,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
       trNeedBud: "請在上方輸入預算，才能分批。", trNeedDiv: "目標殖利率模式需要近 12 個月的股利。",
       trHit: "✓ 可買進", trWait: "↓ 還差 {0}", trVsNow: "比現價 {0}", trYAt: "殖利率 {0}",
       trAvgN: "{0} 股 · 含手續費共 {1}", trYocN: "每年股利 {0}", trHitN: "{0} / {1} 批", trHitNote: "現在可投入 {0}",
-      trZero: "預算不足", trNote: "每批分到對應比例的預算，以觸發價買整股（手續費 0.1425%，最低 20 元）。均價不含手續費，與「加碼試算」相同。殖利率以近 12 個月股利計算。",
+      trZero: "預算不足", trBud: "可用預算（新台幣）", trTgt: "目標總股數", trTgtPh: "選填",
+      trAtTgt: "目前持股 {0} 股，已達目標 {1} 股。", trOver: "超出預算", trShort: "預算不足", trLeft: "預算剩餘",
+      trTotal: "所需總金額", trShortN: "計畫需 {0}，預算 {1}", trLeftN: "計畫需 {0}／預算 {1}", trNoBud: "計畫含手續費需 {0}；輸入預算可檢查是否足夠", trNote: "有目標股數時，把還需要的股數（目標 − 持股）分到各批；沒有則每批分到對應比例的預算。以觸發價買整股（手續費 0.1425%，最低 20 元）。均價不含手續費，與「加碼試算」相同。殖利率以近 12 個月股利計算。",
       budgetH: "預算可以買多少", budget: "預算（新台幣）", budShares: "可買股數", budCost: "總成本", budLeft: "剩餘金額", budDiv: "預估年股利",
       budLots: "{0} 張 + {2} 股零股", budLotsOnly: "{0} 張（1 張 = 1,000 股）", budOdd: "{0} 股零股（不到 1 張）",
       budCostN: "股款 {0} + 手續費 {1}（0.1425%，最低 20 元）", budLeftN: "預算的 {0}", budDivN: "近 12 個月股利 × 股數 · 成本殖利率 {0}",
@@ -1299,23 +1307,34 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 
       // ---- tranche plan: split the budget into N buys, each triggered by a price drop or a target yield ----
       const trSaved = (() => { try { return JSON.parse(store.get("tranche") || "{}"); } catch (e) { return {}; } })();
-      const tr = reactive(Object.assign({ mode: "drop", w: "eq", n: 3, ds: 5, y0: 5, ys: 0.5, s: "", a: "" }, trSaved));
+      const tr = reactive(Object.assign({ mode: "drop", w: "eq", n: 3, ds: 5, y0: 5, ys: 0.5, s: "", a: "", b: "", t: "" }, trSaved));
       on(() => ({ ...tr }), v => store.set("tranche", JSON.stringify(v)), { deep: true });
       const tp = computed(() => {
         if (!dm.value) return { msg: "" };
-        const price = R.value.close, d = dm.value.d > 0 ? dm.value.d : 0, B = bud.value.B;
-        if (!(B > 0)) return { msg: t("trNeedBud") };
-        if (tr.mode === "yield" && !d) return { msg: t("trNeedDiv") };
-        const n = tr.n, w = Array.from({ length: n }, (_, i) => tr.w === "pyr" ? i + 1 : 1), wSum = w.reduce((a, b) => a + b, 0);
+        // budget: the plan's own field, else the Budget above; target = total shares you want to end up with
+        const price = R.value.close, d = dm.value.d > 0 ? dm.value.d : 0, B = parseFloat(tr.b) > 0 ? parseFloat(tr.b) : (bud.value.B || 0);
         const s0 = Math.max(0, parseFloat(tr.s) || 0), a0 = Math.max(0, parseFloat(tr.a) || 0);
-        let S = s0, C = s0 * a0, spent = 0, hitN = 0, hitAmt = 0;
+        const T = Math.floor(parseFloat(tr.t) || 0), byShares = T > 0;
+        if (!byShares && !(B > 0)) return { msg: t("trNeedBud") };
+        if (tr.mode === "yield" && !d) return { msg: t("trNeedDiv") };
+        const need = byShares ? T - s0 : 0;
+        if (byShares && need <= 0) return { msg: t("trAtTgt", num(s0), num(T)) };
+        const n = tr.n, w = Array.from({ length: n }, (_, i) => tr.w === "pyr" ? i + 1 : 1), wSum = w.reduce((a, b) => a + b, 0);
+        let S = s0, C = s0 * a0, spent = 0, hitN = 0, hitAmt = 0, given = 0;
         const rows = w.map((wi, i) => {
           const P = tr.mode === "drop" ? price * (1 - tr.ds * i / 100) : d / ((tr.y0 + tr.ys * i) / 100);
-          const amt = B * wi / wSum;
-          let sh = P > 0 ? Math.floor(amt / (P * (1 + FEE))) : 0;
-          while (sh > 0 && sh * P + fee(sh * P) > amt) sh--;
+          let sh;
+          if (byShares) {
+            // split the shares still needed by weight; the last tranche takes the rounding remainder
+            sh = i === n - 1 ? need - given : Math.floor(need * wi / wSum); given += sh;
+          } else {
+            const amt = B * wi / wSum;
+            sh = P > 0 ? Math.floor(amt / (P * (1 + FEE))) : 0;
+            while (sh > 0 && sh * P + fee(sh * P) > amt) sh--;
+          }
           const cost = sh ? sh * P + fee(sh * P) : 0;
           S += sh; C += sh * P; spent += cost;
+          const over = byShares && B > 0 && spent > B + 1e-6;
           const hit = price <= P + 1e-9;
           if (hit) { hitN++; hitAmt += cost; }
           const avg = S > 0 ? C / S : 0, vs = (P - price) / price;
@@ -1324,7 +1343,7 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
             pN: tr.mode === "drop" ? t("trVsNow", (vs > 0 ? "+" : "") + pct(vs)) : t("trYAt", pct(d / P)) + " · " + t("trVsNow", (vs > 0 ? "+" : "") + pct(vs)),
             sh: sh ? num(sh) : t("trZero"), cost: sh ? compact(cost) : "–",
             avg: avg ? money(+avg.toFixed(2)) : "–", yoc: d && avg ? pct(d / avg) : "–",
-            st: hit ? t("trHit") : t("trWait", pct((price - P) / price))
+            over, st: (over ? t("trOver") + " · " : "") + (hit ? t("trHit") : t("trWait", pct((price - P) / price)))
           };
         });
         // ladder: lowest trigger on the left, now (or highest trigger) on the right
@@ -1337,7 +1356,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
           nowStyle: at(price) > 80 ? { left: "100%", transform: "translateX(-100%)" } : at(price) < 20 ? { left: "0", transform: "none" } : {},
           avg: avg ? money(+avg.toFixed(2)) : "–", avgN: t("trAvgN", num(S), money(Math.round(spent))),
           yoc: d && avg ? pct(d / avg) : "–", yocN: t("trYocN", money(+(S * d).toFixed(2))),
-          hitN: t("trHitN", hitN, n), hitNote: t("trHitNote", money(Math.round(hitAmt)))
+          hitN: t("trHitN", hitN, n), hitNote: t("trHitNote", money(Math.round(hitAmt))),
+          short: B > 0 && spent > B, noBud: !(B > 0), left: B > 0 ? compact(Math.abs(B - spent)) : compact(spent),
+          leftN: !(B > 0) ? t("trNoBud", money(Math.round(spent))) : spent > B ? t("trShortN", money(Math.round(spent)), money(B)) : t("trLeftN", money(Math.round(spent)), money(B))
         };
       });
 
